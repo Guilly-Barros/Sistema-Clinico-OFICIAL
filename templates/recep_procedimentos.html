@@ -11,7 +11,7 @@
     .table-responsive.table-scrolling { box-shadow: inset 6px 0 12px -12px rgba(13,110,253,.35); }
     .table-responsive thead th { white-space: nowrap; }
     .agenda-row-detail .border-top { border-color: rgba(13,110,253,.15) !important; }
-    .offcanvas .list-group-item { border: none; border-bottom: 1px solid #eef1f6; }
+    .offcanvas .list-group-item { border: none; border-bottom: 1px solid #eef1f6; margin-bottom: 0; box-shadow: none; border-radius: 0; }
     .offcanvas .list-group-item:last-child { border-bottom: none; }
     @media (max-width: 767.98px) {
       .table-responsive { border-radius: 1rem !important; }
@@ -22,10 +22,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container-lg py-4 py-md-5">
   <div class="text-center mb-4">
-    <h2 class="page-title mb-2">Procedimentos</h2>
-    <p class="muted mb-0">Gerencie agendamentos em andamento e administre o catálogo de procedimentos.</p>
+    <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
+    <h2 class="page-title mt-3 mb-1">Procedimentos</h2>
+    <p class="muted mb-0">Gerencie agendamentos em andamento e administre o catálogo da clínica.</p>
   </div>
 
   <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3 mb-4">
