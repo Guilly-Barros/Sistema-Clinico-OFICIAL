@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+import sqlite3
+
 from flask import (
     Blueprint, redirect, render_template, request, session,
     url_for, flash, jsonify
@@ -9,6 +12,13 @@ from werkzeug.security import check_password_hash
 from databaser import (
     conectar, criar_tabelas, horarios_disponiveis
 )
+
+STATUS_AGENDAMENTO = [
+    ("agendado", "Agendado"),
+    ("em atendimento", "Em atendimento"),
+    ("concluido", "Concluído"),
+    ("cancelado", "Cancelado"),
+]
 
 # NOME DO BLUEPRINT *deve* ser "user" para os endpoints ficarem "user.*"
 user_bp = Blueprint('user', __name__, template_folder='templates')
@@ -64,9 +74,12 @@ def user():
 
                 tipo = session["usuario_tipo"]
                 conn.close()
-                if   tipo == "medico":                               return redirect(url_for("user.visao_medico"))
-                elif tipo == "paciente":                              return redirect(url_for("user.visao_paciente"))
-                elif tipo in ("recepcionista", "recepcionista master"): return redirect(url_for("user.visao_recepcionista"))
+                if tipo == "medico":
+                    return redirect(url_for("user.visao_medico"))
+                if tipo == "paciente":
+                    return redirect(url_for("user.visao_paciente"))
+                if tipo in ("recepcionista", "recepcionista master"):
+                    return redirect(url_for("user.visao_recepcionista"))
                 else:
                     flash("Tipo de usuário desconhecido!", "danger")
                     return redirect(url_for("user.user"))
@@ -154,7 +167,7 @@ def agendar_consulta():
             conn.close()
             return redirect(url_for("user.agendar_consulta"))
 
-        # procedimento fallback textual → converte para ID real
+        # procedimento fallback textual -> converte para ID real
         if not procedimento_id.isdigit():
             nome_map = {
                 "__particular__": "Consulta Particular",
@@ -216,6 +229,193 @@ def visao_recepcionista():
     conn.close()
     return render_template("recepcionista.html", pendentes=pend)
 
+
+@user_bp.route("/recepcionista/procedimentos", methods=["GET"], endpoint="procedimentos")
+@login_required(role='recepcionista')
+def procedimentos():
+    criar_tabelas()
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, nome, descricao FROM procedimentos ORDER BY nome")
+    procedimentos = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT a.id, a.data, a.hora, a.status,
+               a.medico_id, a.sala_id, a.procedimento_id,
+               pac.nome AS paciente, med.nome AS medico,
+               pr.nome AS procedimento, s.nome AS sala
+        FROM agendamentos a
+        JOIN usuarios pac ON pac.id = a.paciente_id
+        JOIN usuarios med ON med.id = a.medico_id
+        JOIN procedimentos pr ON pr.id = a.procedimento_id
+        JOIN salas s ON s.id = a.sala_id
+        ORDER BY a.data, a.hora
+        """
+    )
+    agendamentos = cur.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "recep_procedimentos.html",
+        procedimentos=procedimentos,
+        agendamentos=agendamentos,
+        status_opcoes=STATUS_AGENDAMENTO,
+    )
+
+
+@user_bp.route("/recepcionista/procedimentos/novo", methods=["POST"], endpoint="criar_procedimento")
+@login_required(role='recepcionista')
+def criar_procedimento():
+    nome = (request.form.get("nome") or "").strip()
+    descricao = (request.form.get("descricao") or "").strip()
+
+    if not nome:
+        flash("Informe o nome do procedimento.", "danger")
+        return redirect(url_for("user.procedimentos"))
+
+    conn = conectar()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO procedimentos (nome, descricao) VALUES (?, ?)",
+            (nome, descricao)
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        conn.close()
+        flash("Já existe um procedimento com esse nome.", "warning")
+        return redirect(url_for("user.procedimentos"))
+
+    conn.close()
+    flash("Procedimento cadastrado com sucesso!", "success")
+    return redirect(url_for("user.procedimentos"))
+
+
+@user_bp.route(
+    "/recepcionista/procedimentos/<int:procedimento_id>/editar",
+    methods=["POST"],
+    endpoint="editar_procedimento"
+)
+@login_required(role='recepcionista')
+def editar_procedimento(procedimento_id):
+    nome = (request.form.get("nome") or "").strip()
+    descricao = (request.form.get("descricao") or "").strip()
+
+    if not nome:
+        flash("Informe o nome do procedimento.", "danger")
+        return redirect(url_for("user.procedimentos"))
+
+    conn = conectar()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE procedimentos SET nome=?, descricao=? WHERE id=?",
+            (nome, descricao, procedimento_id)
+        )
+        if cur.rowcount == 0:
+            conn.close()
+            flash("Procedimento não encontrado.", "danger")
+            return redirect(url_for("user.procedimentos"))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        conn.close()
+        flash("Já existe um procedimento com esse nome.", "warning")
+        return redirect(url_for("user.procedimentos"))
+
+    conn.close()
+    flash("Procedimento atualizado com sucesso!", "success")
+    return redirect(url_for("user.procedimentos"))
+
+
+@user_bp.route(
+    "/recepcionista/procedimentos/agendamentos/<int:agendamento_id>",
+    methods=["POST"],
+    endpoint="atualizar_agendamento"
+)
+@login_required(role='recepcionista')
+def atualizar_agendamento(agendamento_id):
+    status = (request.form.get("status") or "").strip().lower()
+    nova_data = (request.form.get("data") or "").strip()
+    nova_hora = (request.form.get("hora") or "").strip()
+
+    status_validos = {valor for valor, _ in STATUS_AGENDAMENTO}
+    if status and status not in status_validos:
+        flash("Status inválido.", "danger")
+        return redirect(url_for("user.procedimentos"))
+
+    if (nova_data and not nova_hora) or (nova_hora and not nova_data):
+        flash("Informe data e horário para alterar o agendamento.", "warning")
+        return redirect(url_for("user.procedimentos"))
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT medico_id, sala_id, data, hora, status FROM agendamentos WHERE id=?",
+        (agendamento_id,)
+    )
+    atual = cur.fetchone()
+
+    if not atual:
+        conn.close()
+        flash("Agendamento não encontrado.", "danger")
+        return redirect(url_for("user.procedimentos"))
+
+    campos = []
+    valores = []
+
+    if status and status != atual["status"]:
+        campos.append("status=?")
+        valores.append(status)
+
+    alterar_horario = False
+
+    if nova_data and nova_hora:
+        try:
+            datetime.strptime(nova_data, "%Y-%m-%d")
+            datetime.strptime(nova_hora, "%H:%M")
+        except ValueError:
+            conn.close()
+            flash("Formato de data ou hora inválido.", "danger")
+            return redirect(url_for("user.procedimentos"))
+
+        if nova_data != atual["data"] or nova_hora != atual["hora"]:
+            livres = horarios_disponiveis(
+                atual["medico_id"],
+                atual["sala_id"],
+                nova_data,
+                ignorar_agendamento_id=agendamento_id,
+            )
+            if nova_hora not in livres:
+                conn.close()
+                flash("Horário indisponível para este médico ou sala.", "danger")
+                return redirect(url_for("user.procedimentos"))
+            alterar_horario = True
+        else:
+            alterar_horario = False
+
+        if alterar_horario:
+            campos.extend(["data=?", "hora=?"])
+            valores.extend([nova_data, nova_hora])
+
+    if not campos:
+        conn.close()
+        flash("Nenhuma alteração informada.", "info")
+        return redirect(url_for("user.procedimentos"))
+
+    valores.append(agendamento_id)
+    cur.execute(f"UPDATE agendamentos SET {', '.join(campos)} WHERE id=?", valores)
+    conn.commit()
+    conn.close()
+
+    flash("Agendamento atualizado com sucesso!", "success")
+    return redirect(url_for("user.procedimentos"))
+
 @user_bp.route("/medico", endpoint="visao_medico")
 @login_required(role='medico')
 def visao_medico():
@@ -229,7 +429,8 @@ def visao_paciente():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT a.id, a.data, a.hora, s.nome AS sala, u.nome AS medico, p.nome AS procedimento
+        SELECT a.id, a.data, a.hora, a.medico_id, a.sala_id,
+               s.nome AS sala, u.nome AS medico, p.nome AS procedimento
         FROM agendamentos a
         JOIN salas s ON s.id=a.sala_id
         JOIN usuarios u ON u.id=a.medico_id
@@ -265,11 +466,28 @@ def solicitar_ajuste(agendamento_id):
     cur = conn.cursor()
 
     # valida: agendamento pertence ao paciente autenticado
-    cur.execute("SELECT id FROM agendamentos WHERE id=? AND paciente_id=?", (agendamento_id, session["usuario_id"]))
-    if not cur.fetchone():
+    cur.execute(
+        "SELECT id, medico_id, sala_id, data, hora FROM agendamentos WHERE id=? AND paciente_id=?",
+        (agendamento_id, session["usuario_id"])
+    )
+    agendamento = cur.fetchone()
+
+    if not agendamento:
         conn.close()
         flash("Agendamento inválido.", "danger")
         return redirect(url_for("user.visao_paciente"))
+
+    if not novo_dia or not nova_hora:
+        conn.close()
+        flash("Informe novo dia e horário.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], novo_dia)
+    if not (novo_dia == agendamento["data"] and nova_hora == agendamento["hora"]):
+        if nova_hora not in livres:
+            conn.close()
+            flash("Horário indisponível. Escolha outra opção.", "danger")
+            return redirect(url_for("user.visao_paciente"))
 
     cur.execute("""
         INSERT INTO agendamento_ajustes (agendamento_id, novo_dia, nova_hora, motivo, status, criado_em)
@@ -330,7 +548,7 @@ def decidir_ajuste(ajuste_id):
         flash("Solicitação negada.", "warning")
         return redirect(url_for("user.lista_ajustes"))
 
-    # aceitar → checa disponibilidade
+    # aceitar -> checa disponibilidade
     livres = horarios_disponiveis(row["medico_id"], row["sala_id"], row["novo_dia"])
     if row["nova_hora"] not in livres:
         conn.close()
@@ -350,10 +568,58 @@ def decidir_ajuste(ajuste_id):
 @user_bp.route("/recepcionista/horarios_disponiveis", endpoint="horarios_api")
 @login_required(role='recepcionista')
 def horarios_api():
-    medico_id = int(request.args.get("medico_id"))
-    sala_id   = int(request.args.get("sala_id"))
-    dia       = request.args.get("dia")  # YYYY-MM-DD
-    return jsonify(horarios_disponiveis(medico_id, sala_id, dia))
+    try:
+        medico_id = int(request.args.get("medico_id", "0"))
+        sala_id = int(request.args.get("sala_id", "0"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "msg": "Parâmetros inválidos."}), 400
+
+    dia = (request.args.get("dia") or "").strip()  # YYYY-MM-DD
+    if not dia:
+        return jsonify([])
+
+    ignorar_id = request.args.get("ignorar_id")
+    try:
+        ignorar_id_int = int(ignorar_id) if ignorar_id is not None else None
+    except ValueError:
+        ignorar_id_int = None
+
+    return jsonify(
+        horarios_disponiveis(
+            medico_id,
+            sala_id,
+            dia,
+            ignorar_agendamento_id=ignorar_id_int,
+        )
+    )
+
+
+@user_bp.route("/paciente/horarios_disponiveis", endpoint="paciente_horarios_api")
+@login_required(role='paciente')
+def paciente_horarios_api():
+    try:
+        agendamento_id = int(request.args.get("agendamento_id", "0"))
+    except ValueError:
+        return jsonify({"ok": False, "msg": "Agendamento inválido."}), 400
+
+    dia = (request.args.get("dia") or "").strip()
+    if not dia:
+        return jsonify({"ok": False, "msg": "Informe o dia."}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT medico_id, sala_id, data, hora FROM agendamentos WHERE id=? AND paciente_id=?",
+        (agendamento_id, session["usuario_id"])
+    )
+    agendamento = cur.fetchone()
+    conn.close()
+
+    if not agendamento:
+        return jsonify({"ok": False, "msg": "Agendamento não encontrado."}), 404
+
+    livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], dia)
+    return jsonify(livres)
 
 
 # ------------------ Recepção: criar usuários ------------------

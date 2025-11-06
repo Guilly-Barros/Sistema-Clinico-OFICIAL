@@ -1,155 +1,221 @@
 {% extends "base.html" %}
 {% block title %}Painel do Paciente — Clínica Vida+{% endblock %}
-{% block nav_actions %}
-<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
-{% endblock %}
+{% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <h2 class="page-title text-center mb-4">Minhas Consultas</h2>
-
-  {% if agendamentos %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Data</th><th>Hora</th><th>Médico</th><th>Procedimento</th><th>Sala</th><th class="text-end">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in agendamentos %}
-        <tr>
-          <td>{{ a['data'] }}</td>
-          <td>{{ a['hora'] }}</td>
-          <td>{{ a['medico'] }}</td>
-          <td>{{ a['procedimento'] }}</td>
-          <td>{{ a['sala'] }}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalAjuste"
-                    data-agendamento="{{ a['id'] }}"
-                    data-data="{{ a['data'] }}"
-                    data-hora="{{ a['hora'] }}">
-              <i class="bi bi-calendar2-week"></i> Solicitar ajuste
-            </button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="container-lg py-4 py-md-5">
+  <div class="text-center mb-4">
+    <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Paciente</span>
+    <h2 class="page-title mt-3 mb-1">Minhas consultas</h2>
+    <p class="muted mb-0">Visualize seus agendamentos e solicite ajustes quando necessário.</p>
   </div>
-  {% else %}
-    <div class="alert alert-info text-center">Você ainda não possui consultas agendadas.</div>
-  {% endif %}
 
-  <h5 class="mt-5 mb-2">Minhas solicitações</h5>
-  {% if ajustes %}
-    <ul class="list-group">
-      {% for j in ajustes %}
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <div class="d-flex align-items-center gap-2">
-                <strong>Para: {{ j['novo_dia'] }} {{ j['nova_hora'] }}</strong>
-                {% if j['status'] == 'pendente' %}
-                  <span class="badge text-bg-warning">Pendente</span>
-                {% elif j['status'] == 'aceito' %}
-                  <span class="badge text-bg-success">Aceito</span>
-                {% elif j['status'] == 'negado' %}
-                  <span class="badge text-bg-danger">Negado</span>
-                {% else %}
-                  <span class="badge text-bg-secondary">{{ j['status'] }}</span>
+  <div class="card p-4 p-md-5 mb-4">
+    {% if agendamentos %}
+      <div class="table-responsive rounded-4 border border-light-subtle">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr class="text-uppercase text-muted small">
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Médico</th>
+              <th>Procedimento</th>
+              <th>Sala</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in agendamentos %}
+            <tr>
+              <td class="fw-semibold">{{ a['data'] }}</td>
+              <td>{{ a['hora'] }}</td>
+              <td>{{ a['medico'] }}</td>
+              <td>{{ a['procedimento'] }}</td>
+              <td>{{ a['sala'] }}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalAjuste"
+                        data-agendamento="{{ a['id'] }}"
+                        data-data="{{ a['data'] }}"
+                        data-hora="{{ a['hora'] }}"
+                        data-medico="{{ a['medico_id'] }}"
+                        data-sala="{{ a['sala_id'] }}">
+                  <i class="bi bi-calendar2-week"></i> Solicitar ajuste
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-primary mb-0 text-center">Você ainda não possui consultas agendadas.</div>
+    {% endif %}
+  </div>
+
+  <div class="card p-4 p-md-5">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h5 class="fw-semibold mb-0">Minhas solicitações</h5>
+      <span class="badge rounded-pill bg-primary-subtle text-primary">{{ ajustes|length }} registro(s)</span>
+    </div>
+
+    {% if ajustes %}
+      <ul class="list-group list-group-flush">
+        {% for j in ajustes %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <strong>Para: {{ j['novo_dia'] }} {{ j['nova_hora'] }}</strong>
+                  <span class="badge px-3 py-2" data-status-badge="{{ j['status'] }}">{{ j['status'] }}</span>
+                </div>
+
+                {% if j['motivo'] %}
+                  <div class="small text-muted">Seu motivo: {{ j['motivo'] }}</div>
                 {% endif %}
+
+                {% if j['status'] == 'negado' and j['motivo_negativa'] %}
+                  <div class="small text-muted">Motivo da negativa: {{ j['motivo_negativa'] }}</div>
+                {% endif %}
+
+                <div class="small text-muted">Consulta atual: {{ j['data_atual'] }} {{ j['hora_atual'] }}</div>
               </div>
 
-              {% if j['motivo'] %}
-                <div class="small text-muted mt-1">
-                  <strong>Seu motivo:</strong> {{ j['motivo'] }}
-                </div>
-              {% endif %}
-
-              {% if j['status'] == 'negado' and j['motivo_negativa'] %}
-                <div class="small mt-1">
-                  <strong>Motivo da negativa:</strong>
-                  <span class="text-muted">{{ j['motivo_negativa'] }}</span>
-                </div>
-              {% endif %}
-
-              <div class="small text-muted mt-1">
-                Consulta atual: {{ j['data_atual'] }} {{ j['hora_atual'] }}
-              </div>
+              <small class="text-muted">Enviado em {{ j['criado_em'] }}</small>
             </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-light mb-0">Nenhuma solicitação enviada.</div>
+    {% endif %}
+  </div>
 
-            <small class="text-muted">enviado em {{ j['criado_em'] }}</small>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <div class="alert alert-light">Nenhuma solicitação enviada.</div>
-  {% endif %}
-</div>
-
-<!-- Modal única, fora da tabela -->
-<div class="modal fade" id="modalAjuste" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" id="formAjuste" method="POST">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Solicitar ajuste</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-6">
-            <label class="form-label">Novo dia</label>
-            <input type="date" name="novo_dia" class="form-control" required>
-          </div>
-          <div class="col-6">
-            <label class="form-label">Nova hora</label>
-            <input type="time" name="nova_hora" class="form-control" required>
-          </div>
-          <div class="col-12">
-            <label class="form-label">Motivo (opcional)</label>
-            <textarea name="motivo" class="form-control" rows="3" maxlength="240"
-                      placeholder="Descreva brevemente o motivo..."></textarea>
-          </div>
+  <!-- Modal de ajuste -->
+  <div class="modal fade" id="modalAjuste" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formAjuste" method="POST">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
+          <h5 class="modal-title text-white">Solicitar ajuste</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <small class="text-muted d-block mt-2">
-          A recepção analisará sua sugestão e retornará.
-        </small>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary w-100" id="btnEnviar">
-          <i class="bi bi-send"></i> Enviar solicitação
-        </button>
-      </div>
-    </form>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label small text-uppercase text-muted">Novo dia</label>
+              <input type="date" name="novo_dia" class="form-control border-0 shadow-sm" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-uppercase text-muted">Nova hora</label>
+              <select name="nova_hora" class="form-select border-0 shadow-sm" required>
+                <option value="">Selecione o dia para ver horários</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small text-uppercase text-muted">Motivo (opcional)</label>
+              <textarea name="motivo" class="form-control border-0 shadow-sm" rows="3" maxlength="240"
+                        placeholder="Descreva brevemente o motivo..."></textarea>
+            </div>
+          </div>
+          <small class="text-muted d-block mt-3">A recepção analisará sua sugestão e retornará.</small>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary w-100" id="btnEnviar">
+            <i class="bi bi-send"></i> Enviar solicitação
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block body_scripts %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const modalEl = document.getElementById('modalAjuste');
   const form = document.getElementById('formAjuste');
   const btn = document.getElementById('btnEnviar');
+  const diaInput = form.querySelector('input[name="novo_dia"]');
+  const horaSelect = form.querySelector('select[name="nova_hora"]');
 
   modalEl.addEventListener('show.bs.modal', event => {
     const button = event.relatedTarget;
     const agId = button.getAttribute('data-agendamento');
     const data = button.getAttribute('data-data');
     const hora = button.getAttribute('data-hora');
+    const medico = button.getAttribute('data-medico');
+    const sala = button.getAttribute('data-sala');
 
     modalEl.querySelector('.modal-title').innerText = `Solicitar ajuste — ${data} ${hora}`;
     form.action = `/user/paciente/solicitar_ajuste/${agId}`;
     form.reset();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i> Enviar solicitação';
+    horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+    horaSelect.disabled = true;
+
+    form.dataset.agendamento = agId;
+    form.dataset.medico = medico;
+    form.dataset.sala = sala;
+
+    diaInput.value = data;
+    carregarHorarios();
   });
 
-  form.addEventListener('submit', () => {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    form.reset();
+    delete form.dataset.agendamento;
+    delete form.dataset.medico;
+    delete form.dataset.sala;
+    horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+    horaSelect.disabled = true;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i> Enviar solicitação';
+  });
+
+  async function carregarHorarios() {
+    const dia = diaInput.value;
+    const agendamentoId = form.dataset.agendamento;
+
+    if (!dia || !agendamentoId) {
+      horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+      horaSelect.disabled = true;
+      return;
+    }
+
+    horaSelect.innerHTML = '<option value="">Carregando horários...</option>';
+    horaSelect.disabled = true;
+
+    try {
+      const res = await fetch(`/user/paciente/horarios_disponiveis?agendamento_id=${agendamentoId}&dia=${dia}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data?.msg || 'Erro ao carregar horários.';
+        horaSelect.innerHTML = `<option value="">${msg}</option>`;
+        return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        horaSelect.innerHTML = '<option value="">Nenhum horário livre neste dia</option>';
+      } else {
+        horaSelect.innerHTML = data.map(h => `<option value="${h}">${h}</option>`).join('');
+      }
+      horaSelect.disabled = false;
+    } catch (err) {
+      horaSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
+      window.spawnToast?.('Erro ao carregar horários disponíveis.', 'danger');
+    }
+  }
+
+  diaInput.addEventListener('change', carregarHorarios);
+
+  const statusBadges = document.querySelectorAll('[data-status-badge]');
+  statusBadges.forEach(badge => {
+    badge.textContent = badge.textContent.charAt(0).toUpperCase() + badge.textContent.slice(1);
   });
 });
 </script>

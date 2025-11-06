@@ -5,79 +5,76 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <h3 class="page-title mb-4">Solicitações de Ajuste</h3>
+<div class="container-lg py-4 py-md-5">
+  <div class="text-center mb-4">
+    <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
+    <h2 class="page-title mt-3 mb-1">Solicitações de ajuste</h2>
+    <p class="muted mb-0">Analise rapidamente os pedidos enviados pelos pacientes e mantenha a agenda organizada.</p>
+  </div>
 
   {% if pendentes and pendentes|length > 0 %}
-    <div class="list-group">
-      {% for r in pendentes %}
-        <div class="list-group-item">
+    <div class="card p-4 p-md-5">
+      <div class="vstack gap-3">
+        {% for r in pendentes %}
+        <div class="border rounded-4 p-3 p-md-4 bg-white shadow-sm">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-            <div class="me-3">
-              <div class="fw-semibold">
-                {{ r['paciente'] }} → {{ r['medico'] }} | Sala {{ r['sala'] }}
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h5 class="mb-0">{{ r['paciente'] }}</h5>
+                <span class="badge rounded-pill bg-primary-subtle text-primary">{{ r['medico'] }}</span>
+                <span class="badge rounded-pill bg-light text-muted">Sala {{ r['sala'] }}</span>
               </div>
               <div class="small text-muted">
                 Atual: <strong>{{ r['data_atual'] }} {{ r['hora_atual'] }}</strong>
-                &nbsp;|&nbsp;
+                <span class="mx-1">•</span>
                 Solicitado: <strong>{{ r['novo_dia'] }} {{ r['nova_hora'] }}</strong>
               </div>
               {% if r['motivo'] %}
-                <div class="small mt-1">
-                  <strong>Motivo do paciente:</strong> <span class="text-muted">{{ r['motivo'] }}</span>
+                <div class="small text-muted mt-1">
+                  Motivo do paciente: {{ r['motivo'] }}
                 </div>
               {% endif %}
             </div>
 
-            <div class="ms-auto">
-              <div class="d-flex gap-2">
-                <!-- Negar (abre modal para motivo) -->
+            <div class="text-end" style="min-width:220px;">
+              <div class="d-flex justify-content-end gap-2">
                 <button class="btn btn-outline-danger btn-sm"
                         data-bs-toggle="modal"
                         data-bs-target="#modalNegar{{ r['id'] }}">
                   Negar
                 </button>
-
-                <!-- Aceitar diretamente -->
                 <form method="POST"
                       action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}">
                   <input type="hidden" name="acao" value="aceitar">
-                  <button class="btn btn-success btn-sm">Aceitar</button>
+                  <button class="btn btn-primary btn-sm">Aceitar</button>
                 </form>
               </div>
-
-              <!-- Link para ver horários disponíveis -->
-              <div class="mt-2">
-                <button class="btn btn-link p-0 small"
-                        data-med="{{ r['medico_id'] }}"
-                        data-sala="{{ r['sala_id'] }}"
-                        data-dia="{{ r['novo_dia'] }}"
-                        onclick="carregarHorarios(this, 'h{{ r['id'] }}')">
-                  Ver horários disponíveis no dia
-                </button>
-                <div class="small text-muted" id="h{{ r['id'] }}"></div>
-              </div>
+              <button class="btn btn-link p-0 small mt-2"
+                      data-med="{{ r['medico_id'] }}"
+                      data-sala="{{ r['sala_id'] }}"
+                      data-dia="{{ r['novo_dia'] }}"
+                      onclick="carregarHorarios(this, 'h{{ r['id'] }}')">
+                Ver horários disponíveis no dia
+              </button>
+              <div class="small text-muted" id="h{{ r['id'] }}"></div>
             </div>
           </div>
         </div>
 
-        <!-- Modal: motivo da negativa -->
         <div class="modal fade" id="modalNegar{{ r['id'] }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
             <form class="modal-content" method="POST"
                   action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}">
               <input type="hidden" name="acao" value="negar">
-              <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Negar solicitação de ajuste</h5>
+              <div class="modal-header" style="background: linear-gradient(135deg, #dc3545, #a71d2a);">
+                <h5 class="modal-title text-white">Negar solicitação</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                <p class="mb-2 small text-muted">
-                  Explique o motivo da negativa. O paciente verá esta mensagem.
-                </p>
-                <label class="form-label">Motivo da negativa</label>
+                <p class="mb-2 small text-muted">Explique o motivo da negativa. O paciente verá esta mensagem.</p>
+                <label class="form-label small text-uppercase text-muted">Motivo da negativa</label>
                 <textarea name="motivo_negativa"
-                          class="form-control"
+                          class="form-control border-0 shadow-sm"
                           rows="3"
                           required
                           maxlength="300"
@@ -89,10 +86,14 @@
             </form>
           </div>
         </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     </div>
   {% else %}
-    <div class="alert alert-light">Nenhuma solicitação pendente.</div>
+    <div class="card p-5 text-center">
+      <i class="bi bi-emoji-smile text-primary" style="font-size:2rem"></i>
+      <p class="muted mb-0 mt-2">Nenhuma solicitação pendente.</p>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

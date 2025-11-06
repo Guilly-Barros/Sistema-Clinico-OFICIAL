@@ -5,47 +5,250 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clínica Unialfa</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --hero-primary: #0d6efd;
+      --hero-primary-dark: #0a58ca;
+      --hero-text: #f8fbff;
+    }
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    body {
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      color: #1d2a44;
+      background-color: #f0f4ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .navbar {
+      backdrop-filter: blur(6px);
+      background: rgba(13, 110, 253, 0.85) !important;
+    }
+
+    .hero {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 1.5rem 5rem;
+      background: linear-gradient(115deg, rgba(13, 110, 253, 0.9), rgba(13, 110, 253, 0.75)),
+        url('https://images.unsplash.com/photo-1580281657521-8d4e89eebadc?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+      color: var(--hero-text);
+      text-align: center;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15), transparent 55%),
+        radial-gradient(circle at 80% 15%, rgba(255, 255, 255, 0.12), transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      padding: 2.5rem 2rem;
+      border-radius: 32px;
+      background: rgba(11, 71, 180, 0.25);
+      box-shadow: 0 25px 60px rgba(7, 46, 130, 0.35);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero h1 {
+      font-weight: 700;
+      font-size: clamp(2.4rem, 4vw, 3.5rem);
+      letter-spacing: -0.02em;
+    }
+
+    .hero p.lead {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem 1.75rem;
+      text-align: left;
+      padding: 0;
+      list-style: none;
+      margin: 1.5rem 0 2rem;
+    }
+
+    .hero li::before {
+      content: "\2713";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.6rem;
+      height: 1.6rem;
+      margin-right: 0.6rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .cta-btn {
+      padding: 0.9rem 2.6rem;
+      font-size: 1.05rem;
+      border-radius: 999px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 12px 30px rgba(13, 110, 253, 0.45);
+    }
+
+    .cta-btn:hover,
+    .cta-btn:focus {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 18px 40px rgba(13, 110, 253, 0.55);
+    }
+
+    .floating-badge {
+      position: absolute;
+      top: clamp(1.5rem, 6vw, 3rem);
+      right: clamp(1.5rem, 6vw, 3.5rem);
+      background: rgba(248, 251, 255, 0.95);
+      color: #0b3f91;
+      padding: 1rem 1.75rem;
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 18px 40px rgba(0, 31, 84, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 2;
+    }
+
+    .floating-badge span {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(140deg, rgba(13, 110, 253, 0.9), rgba(8, 69, 170, 0.85));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: white;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
+    }
+
+    footer {
+      background: var(--hero-primary-dark);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.9rem;
+      padding: 1.1rem 0;
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 5.5rem 1.25rem 4.25rem;
+      }
+
+      .hero-content {
+        padding: 2.2rem 1.75rem;
+        border-radius: 28px;
+        background: rgba(8, 74, 175, 0.42);
+      }
+
+      .floating-badge {
+        position: static;
+        margin: 0 auto 1.5rem;
+        justify-content: center;
+      }
+
+      .hero ul {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
-      <a class="navbar-brand" href="#">Clínica Agendamento</a>
+      <a class="navbar-brand fw-semibold" href="#">Clínica Agendamento</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHero" aria-controls="navbarHero" aria-expanded="false" aria-label="Alternar navegação">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarHero">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link active" href="#sobre">Sobre</a></li>
+          <li class="nav-item"><a class="nav-link" href="#servicos">Serviços</a></li>
+          <li class="nav-item"><a class="nav-link" href="#contato">Contato</a></li>
+        </ul>
+      </div>
     </div>
   </nav>
 
-  <!-- Conteúdo principal -->
-  <div class="container my-5">
-    <div class="row align-items-center">
-      
-      <!-- Texto sobre a clínica -->
-      <div class="col-md-6">
-        <h1 class="mb-4">Bem-vindo à Clínica Agendamento</h1>
-        <p class="lead">Oferecemos serviços de saúde com profissionais qualificados, atendimento rápido e agendamentos facilitados online.</p>
-        <p>Nosso objetivo é cuidar de você de forma segura e eficiente.</p>
-        <ul>
-          <li>Consultas de clínica geral</li>
-          <li>Consultas de especialidades (cardiologia, dermatologia, pediatria, etc.)</li>
-          <li>Exames laboratoriais</li>
-          <li>Telemedicina</li>
-        </ul>
-        <a href="/user" class="btn btn-primary btn-lg mt-3">Fazer Login / Agendar Consulta</a>
-      </div>
-
-      <!-- Imagem ou ilustração -->
-      <div class="col-md-6 text-center">
-        <img src="https://cdn-icons-png.flaticon.com/512/2965/2965567.png" class="img-fluid" alt="Clínica">
-      </div>
-
+  <section class="hero" id="sobre">
+    <div class="floating-badge shadow-soft" aria-hidden="true">
+      <span>24h</span>
+      Atendimento humanizado e rápido
     </div>
-  </div>
 
-  <!-- Footer simples -->
-  <footer class="bg-primary text-white text-center py-3">
-    © 2025 Clínica Agendamento - Todos os direitos reservados
+    <div class="hero-content shadow-soft">
+      <h1 class="display-4 mb-3">Cuidamos da sua saúde com agilidade e carinho</h1>
+      <p class="lead">Equipe multidisciplinar, tecnologia de ponta e agendamentos descomplicados para você ter acesso aos melhores cuidados quando e onde precisar.</p>
+
+      <ul class="mb-4" id="servicos">
+        <li>Consultas presenciais e por telemedicina</li>
+        <li>Especialidades em cardiologia, dermatologia, pediatria e mais</li>
+        <li>Exames laboratoriais com resultados online</li>
+        <li>Planos corporativos e acompanhamento familiar</li>
+      </ul>
+
+      <a href="/user" class="btn btn-light text-primary fw-semibold cta-btn">Fazer Login / Agendar Consulta</a>
+    </div>
+  </section>
+
+  <footer id="contato" class="text-center">
+    © 2025 Clínica Agendamento — Todos os direitos reservados
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const hero = document.querySelector('.hero');
+      const badge = document.querySelector('.floating-badge');
+      const nav = document.querySelector('.navbar');
+
+      // animação de entrada suave
+      requestAnimationFrame(() => {
+        hero.classList.add('is-visible');
+      });
+
+      // efeito parallax suave no badge
+      window.addEventListener('scroll', () => {
+        const offset = window.scrollY * 0.15;
+        badge.style.transform = `translateY(${offset}px)`;
+        nav.classList.toggle('navbar-solid', window.scrollY > 10);
+      }, { passive: true });
+    });
+  </script>
+  <style>
+    .hero {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .hero.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .navbar.navbar-solid {
+      background: rgba(13, 110, 253, 0.98) !important;
+      box-shadow: 0 10px 25px rgba(8, 48, 135, 0.25);
+    }
+  </style>
 </body>
 </html>
