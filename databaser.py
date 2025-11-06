@@ -49,12 +49,19 @@ def criar_tabelas():
             sala_id INTEGER NOT NULL,
             data TEXT NOT NULL, -- YYYY-MM-DD
             hora TEXT NOT NULL, -- HH:MM
+            status TEXT NOT NULL DEFAULT 'agendado',
             FOREIGN KEY (paciente_id) REFERENCES usuarios (id),
             FOREIGN KEY (medico_id) REFERENCES usuarios (id),
             FOREIGN KEY (procedimento_id) REFERENCES procedimentos (id),
             FOREIGN KEY (sala_id) REFERENCES salas (id)
         )
     ''')
+
+    # garante que a coluna status exista mesmo em bases antigas
+    cur.execute("PRAGMA table_info(agendamentos)")
+    cols = [row[1] for row in cur.fetchall()]
+    if 'status' not in cols:
+        cur.execute("ALTER TABLE agendamentos ADD COLUMN status TEXT NOT NULL DEFAULT 'agendado'")
 
     # --- solicitações de ajuste de agendamento ---
     cur.execute('''

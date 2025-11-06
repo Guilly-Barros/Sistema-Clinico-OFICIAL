@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Procedimentos — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+  <a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-outline-light btn-sm me-2">Voltar</a>
+  <a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
+{% endblock %}
+{% block content %}
+<div class="container py-5 container-narrow">
+  <h2 class="page-title text-center mb-2">Procedimentos</h2>
+  <p class="text-center muted mb-5">Cadastre novos procedimentos clínicos e acompanhe o status dos agendamentos.</p>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="card p-4 h-100">
+        <h5 class="fw-semibold mb-3">Cadastrar novo procedimento</h5>
+        <form method="post" action="{{ url_for('user.criar_procedimento') }}" class="needs-validation" novalidate>
+          <div class="mb-3">
+            <label class="form-label">Nome</label>
+            <input type="text" name="nome" class="form-control" placeholder="Ex.: Consulta Odontológica" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descrição</label>
+            <textarea name="descricao" class="form-control" rows="3" placeholder="Detalhes adicionais (opcional)"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Salvar procedimento</button>
+        </form>
+
+        <hr class="my-4">
+
+        <h5 class="fw-semibold mb-3">Procedimentos cadastrados</h5>
+        <div class="list-group list-group-flush">
+          {% if procedimentos %}
+            {% for procedimento in procedimentos %}
+              <div class="list-group-item px-0">
+                <form method="post" action="{{ url_for('user.editar_procedimento', procedimento_id=procedimento.id) }}" class="row g-2 align-items-end">
+                  <div class="col-12">
+                    <label class="form-label small text-uppercase text-muted">Nome</label>
+                    <input type="text" name="nome" class="form-control" value="{{ procedimento.nome }}" required>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small text-uppercase text-muted">Descrição</label>
+                    <textarea name="descricao" class="form-control" rows="2">{{ procedimento.descricao or '' }}</textarea>
+                  </div>
+                  <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar</button>
+                  </div>
+                </form>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted small">Nenhum procedimento cadastrado.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-semibold mb-0">Agendamentos</h5>
+          <span class="badge bg-light text-dark">{{ agendamentos|length }} registro(s)</span>
+        </div>
+        <p class="form-hint">Atualize o status ou ajuste o horário dos procedimentos agendados.</p>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr class="text-muted small text-uppercase">
+                <th>Paciente</th>
+                <th>Médico</th>
+                <th>Procedimento</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Status</th>
+                <th class="text-end">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="agendamentos-accordion">
+              {% if agendamentos %}
+                {% for agendamento in agendamentos %}
+                <tr>
+                  <td>{{ agendamento.paciente }}</td>
+                  <td>{{ agendamento.medico }}</td>
+                  <td>{{ agendamento.procedimento }}</td>
+                  <td>{{ agendamento.data }}</td>
+                  <td>{{ agendamento.hora }}</td>
+                  <td>
+                    <span class="badge bg-secondary text-capitalize">{{ agendamento.status }}</span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#agendamento-{{ agendamento.id }}" aria-expanded="false" aria-controls="agendamento-{{ agendamento.id }}">
+                      Atualizar
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="7" class="p-0">
+                    <div class="collapse" id="agendamento-{{ agendamento.id }}" data-bs-parent="#agendamentos-accordion">
+                      <div class="border-top px-3 py-3 bg-light-subtle">
+                        <form class="row g-2" method="post" action="{{ url_for('user.atualizar_agendamento', agendamento_id=agendamento.id) }}">
+                          <div class="col-md-4">
+                            <label class="form-label small text-uppercase text-muted">Novo status</label>
+                            <select name="status" class="form-select">
+                              <option value="">Manter</option>
+                              {% for valor, rotulo in status_opcoes %}
+                                <option value="{{ valor }}" {% if valor == agendamento.status %}selected{% endif %}>{{ rotulo }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label small text-uppercase text-muted">Nova data</label>
+                            <input type="date" name="data" class="form-control" value="{{ agendamento.data }}">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label small text-uppercase text-muted">Nova hora</label>
+                            <input type="time" name="hora" class="form-control" value="{{ agendamento.hora }}">
+                          </div>
+                          <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary btn-sm">Salvar alterações</button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-4">Nenhum agendamento encontrado.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
