@@ -2,41 +2,58 @@
 {% block title %}Login — Clínica Vida+{% endblock %}
 
 {% block content %}
-  <div class="container d-flex justify-content-center align-items-center py-5" style="min-height:70vh">
-    <div class="card p-4" style="width:100%; max-width:460px;">
-      <div class="text-center mb-2">
-        <i class="bi bi-heart-pulse-fill text-primary" style="font-size:2.25rem"></i>
-      </div>
-      <h3 class="text-center fw-semibold mb-1">Acesso ao Sistema</h3>
-      <p class="text-center muted mb-4">Entre para gerenciar seus agendamentos</p>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-5 col-md-8">
+        <div class="card p-4 p-md-5">
+          <div class="text-center mb-4">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-white shadow-sm"
+                  style="width:64px; height:64px;">
+              <i class="bi bi-heart-pulse-fill text-primary" style="font-size:1.8rem"></i>
+            </span>
+            <h2 class="fw-bold mt-3 mb-1">Bem-vindo de volta</h2>
+            <p class="muted mb-0">Acesse sua área e acompanhe os cuidados com a clínica.</p>
+          </div>
 
-      <form action="{{ url_for('user.user') }}" method="POST">
-        <div class="mb-3">
-          <label class="form-label"><i class="bi bi-envelope"></i> E-mail</label>
-          <input type="email" class="form-control" name="email" placeholder="exemplo@email.com" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label"><i class="bi bi-lock"></i> Senha</label>
-          <input type="password" class="form-control" name="senha" placeholder="Digite sua senha" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label"><i class="bi bi-person-badge"></i> Acessar como</label>
-          <select class="form-select" name="tipo_usuario" required>
-            <option value="">Selecione...</option>
-            <option value="medico">Médico</option>
-            <option value="paciente">Paciente</option>
-            <option value="recepcionista">Recepcionista</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary w-100 mt-1">
-          <i class="bi bi-box-arrow-in-right"></i> Entrar
-        </button>
-      </form>
+          <form action="{{ url_for('user.user') }}" method="POST" class="vstack gap-3">
+            <div>
+              <label class="form-label small text-uppercase text-muted">E-mail</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-0"><i class="bi bi-envelope"></i></span>
+                <input type="email" class="form-control border-0" name="email" placeholder="exemplo@email.com" required>
+              </div>
+            </div>
 
-      <div class="text-center mt-3">
-        <small class="muted">Ainda não tem conta?
-          <a href="{{ url_for('user.register') }}" class="text-decoration-none">Cadastre-se como paciente</a>
-        </small>
+            <div>
+              <label class="form-label small text-uppercase text-muted">Senha</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-0"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control border-0" name="senha" placeholder="Digite sua senha" required>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label small text-uppercase text-muted">Acessar como</label>
+              <select class="form-select border-0 shadow-sm" name="tipo_usuario" required>
+                <option value="">Selecione...</option>
+                <option value="medico">Médico</option>
+                <option value="paciente">Paciente</option>
+                <option value="recepcionista">Recepcionista</option>
+              </select>
+              <p class="form-hint mt-1">Escolha o perfil conforme seu cadastro na clínica.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+            </button>
+          </form>
+
+          <div class="text-center mt-4">
+            <small class="muted">Ainda não tem conta?
+              <a href="{{ url_for('user.register') }}" class="fw-semibold text-decoration-none">Cadastre-se como paciente</a>
+            </small>
+          </div>
+        </div>
       </div>
     </div>
   </div>

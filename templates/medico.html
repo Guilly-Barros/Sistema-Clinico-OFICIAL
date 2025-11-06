@@ -1,13 +1,63 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  </head>
-  <body>
-    <h1>Medico</h1>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Painel do Médico — Clínica Vida+{% endblock %}
+{% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
+
+{% block content %}
+  <div class="container-lg py-4 py-md-5">
+    <div class="row g-4 align-items-stretch">
+      <div class="col-lg-7">
+        <div class="card h-100 p-4 p-md-5">
+          <span class="badge bg-primary-subtle text-primary w-auto align-self-start px-3 py-2 rounded-pill">Agenda clínica</span>
+          <h2 class="fw-bold mt-3">Bem-vindo, doutor(a)!</h2>
+          <p class="muted mb-4">Consulte os atendimentos do dia e acompanhe rapidamente solicitações dos pacientes.</p>
+
+          <div class="d-flex flex-column gap-3" id="agendaPlaceholder">
+            <div class="bg-white rounded-4 shadow-sm p-3 p-md-4">
+              <div class="d-flex justify-content-between flex-wrap gap-2">
+                <div>
+                  <small class="text-uppercase text-muted">Próximo atendimento</small>
+                  <h5 class="mb-1">Nenhum agendamento carregado</h5>
+                  <p class="mb-0 text-muted small">Quando houver consultas agendadas para hoje elas aparecerão aqui automaticamente.</p>
+                </div>
+                <span class="badge rounded-pill bg-primary text-white align-self-start px-3 py-2">--:--</span>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-4 shadow-sm p-3 p-md-4">
+              <small class="text-uppercase text-muted d-block mb-2">Dica rápida</small>
+              <p class="mb-0 text-muted">Mantenha a recepção informada sempre que um atendimento atrasar para que os pacientes recebam uma nova previsão de horário.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card h-100 p-4 p-md-5 d-flex flex-column gap-4">
+          <div>
+            <h5 class="fw-semibold">Solicitações de ajuste</h5>
+            <p class="muted small mb-3">A recepção avisará quando houver pedidos de alteração de horário. Você poderá visualizar os detalhes no painel da recepção.</p>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-bell-fill text-primary" style="font-size:1.5rem"></i>
+              <span class="text-muted">Fique atento às notificações enviadas pelo time administrativo.</span>
+            </div>
+          </div>
+
+          <div>
+            <h5 class="fw-semibold">Materiais de apoio</h5>
+            <ul class="list-unstyled vstack gap-2 small text-muted">
+              <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Protocolos clínicos atualizados semanalmente.</li>
+              <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Acesso rápido à ficha do paciente pelo prontuário físico.</li>
+              <li><i class="bi bi-check-circle-fill text-primary me-2"></i>Contatos diretos da equipe de enfermagem 24h.</li>
+            </ul>
+          </div>
+
+          <div class="mt-auto">
+            <a href="{{ url_for('user.procedimentos') }}" class="btn btn-outline-primary w-100">
+              <i class="bi bi-calendar2-week me-1"></i> Ver agenda completa na recepção
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

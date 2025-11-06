@@ -2,48 +2,86 @@
 {% block title %}Painel da Recepcionista — Clínica Vida+{% endblock %}
 {% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
 {% block content %}
-<div class="container py-5">
-  <h2 class="text-center page-title mb-2">Painel da Recepcionista</h2>
-  <p class="text-center muted mb-4">Gerencie usuários, agendamentos, salas e solicitações de ajuste.</p>
-
-  {% if pendentes and pendentes|int > 0 %}
-  <div class="alert alert-warning d-flex justify-content-between align-items-center">
-    <div><strong>{{ pendentes }}</strong> solicitação(ões) de ajuste pendente(s).</div>
-    <a class="btn btn-sm btn-dark" href="{{ url_for('user.lista_ajustes') }}">Ver solicitações</a>
+<div class="container-lg py-4 py-md-5">
+  <div class="text-center mb-4">
+    <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
+    <h2 class="page-title mt-3 mb-1">Painel da recepcionista</h2>
+    <p class="muted mb-0">Centralize cadastros, acompanhe solicitações e mantenha a agenda sob controle.</p>
   </div>
-  {% else %}
-  <div class="alert alert-light text-center">Nenhuma solicitação pendente.</div>
-  {% endif %}
+
+  <div class="card p-4 p-md-5 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      {% if pendentes and pendentes|int > 0 %}
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis px-3 py-2"><strong>{{ pendentes }}</strong> ajuste(s) pendente(s)</span>
+          <span class="muted small">Há solicitações aguardando análise.</span>
+        </div>
+        <a class="btn btn-outline-primary" href="{{ url_for('user.lista_ajustes') }}">
+          <i class="bi bi-inbox"></i> Ver solicitações
+        </a>
+      {% else %}
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-emoji-smile text-primary" style="font-size:1.6rem"></i>
+          <span class="muted">Nenhuma solicitação pendente no momento.</span>
+        </div>
+        <a class="btn btn-outline-primary disabled" tabindex="-1" aria-disabled="true">
+          <i class="bi bi-inbox"></i> Caixa de entrada vazia
+        </a>
+      {% endif %}
+    </div>
+  </div>
 
   <div class="row g-4 mt-1">
     <div class="col-md-6 col-lg-3">
-      <div class="card text-center p-3 h-100">
-        <h5>Cadastro de Usuários</h5>
+      <div class="card text-center p-4 h-100">
+        <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-3">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <h5 class="fw-semibold">Cadastro de usuários</h5>
         <p class="muted small">Crie novos médicos, pacientes ou recepcionistas.</p>
         <a href="{{ url_for('user.cadastrar_usuarios') }}" class="btn btn-primary w-100">Acessar</a>
       </div>
     </div>
     <div class="col-md-6 col-lg-3">
-      <div class="card text-center p-3 h-100">
-        <h5>Agendamentos</h5>
+      <div class="card text-center p-4 h-100">
+        <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-3">
+          <i class="bi bi-calendar2-check"></i>
+        </div>
+        <h5 class="fw-semibold">Agendamentos</h5>
         <p class="muted small">Gerencie consultas e horários disponíveis.</p>
-        <a href="{{ url_for('user.agendar_consulta') }}" class="btn btn-success w-100">Agendar</a>
+        <a href="{{ url_for('user.agendar_consulta') }}" class="btn btn-outline-primary w-100">Agendar</a>
       </div>
     </div>
     <div class="col-md-6 col-lg-3">
-      <div class="card text-center p-3 h-100">
-        <h5>Procedimentos</h5>
+      <div class="card text-center p-4 h-100">
+        <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-3">
+          <i class="bi bi-clipboard2-pulse"></i>
+        </div>
+        <h5 class="fw-semibold">Procedimentos</h5>
         <p class="muted small">Cadastre e edite tipos de procedimentos clínicos.</p>
-        <button class="btn btn-warning w-100" disabled>Em breve</button>
+        <a href="{{ url_for('user.procedimentos') }}" class="btn btn-outline-primary w-100">Gerenciar</a>
       </div>
     </div>
     <div class="col-md-6 col-lg-3">
-      <div class="card text-center p-3 h-100">
-        <h5>Salas</h5>
+      <div class="card text-center p-4 h-100">
+        <div class="icon-circle bg-secondary-subtle text-secondary mx-auto mb-3">
+          <i class="bi bi-building"></i>
+        </div>
+        <h5 class="fw-semibold">Salas</h5>
         <p class="muted small">Adicione e gerencie as salas de atendimento.</p>
-        <button class="btn btn-danger w-100" disabled>Em breve</button>
+        <button class="btn btn-outline-secondary w-100" disabled>Em breve</button>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+  document.querySelectorAll('.icon-circle')?.forEach(circle => {
+    circle.style.width = circle.style.height = '64px';
+    circle.classList.add('d-inline-flex','align-items-center','justify-content-center','rounded-circle','shadow-sm');
+    circle.querySelector('i').style.fontSize = '1.5rem';
+  });
+</script>
 {% endblock %}

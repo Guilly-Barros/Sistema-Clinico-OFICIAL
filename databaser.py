@@ -49,12 +49,19 @@ def criar_tabelas():
             sala_id INTEGER NOT NULL,
             data TEXT NOT NULL, -- YYYY-MM-DD
             hora TEXT NOT NULL, -- HH:MM
+            status TEXT NOT NULL DEFAULT 'agendado',
             FOREIGN KEY (paciente_id) REFERENCES usuarios (id),
             FOREIGN KEY (medico_id) REFERENCES usuarios (id),
             FOREIGN KEY (procedimento_id) REFERENCES procedimentos (id),
             FOREIGN KEY (sala_id) REFERENCES salas (id)
         )
     ''')
+
+    # garante que a coluna status exista mesmo em bases antigas
+    cur.execute("PRAGMA table_info(agendamentos)")
+    cols = [row[1] for row in cur.fetchall()]
+    if 'status' not in cols:
+        cur.execute("ALTER TABLE agendamentos ADD COLUMN status TEXT NOT NULL DEFAULT 'agendado'")
 
     # --- solicitações de ajuste de agendamento ---
     cur.execute('''
@@ -96,17 +103,24 @@ def criar_tabelas():
     conn.close()
 
 # ---------- util: calcular horários disponíveis ----------
-def horarios_disponiveis(medico_id:int, sala_id:int, dia_str:str, passo_min=30):
+def horarios_disponiveis(medico_id:int, sala_id:int, dia_str:str, passo_min=30, ignorar_agendamento_id=None):
     """
     Gera timeslots entre 08:00-17:00 para a data dada,
     removendo horários já ocupados (sala OU médico ocupados).
+    Quando `ignorar_agendamento_id` é informado, o agendamento correspondente
+    é desconsiderado da checagem de conflito (útil para edições).
     Retorna lista de strings 'HH:MM'.
     """
     conn = conectar()
     c = conn.cursor()
     # horários ocupados por sala OU por médico na mesma data
-    c.execute("""SELECT hora FROM agendamentos WHERE data=? AND (sala_id=? OR medico_id=?)""",
-              (dia_str, sala_id, medico_id))
+    params = [dia_str, sala_id, medico_id]
+    query = """SELECT hora FROM agendamentos WHERE data=? AND (sala_id=? OR medico_id=?)"""
+    if ignorar_agendamento_id is not None:
+        query += " AND id<>?"
+        params.append(ignorar_agendamento_id)
+
+    c.execute(query, params)
     ocupados = {row["hora"] for row in c.fetchall()}
     conn.close()
 

@@ -3,29 +3,43 @@
 {% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Já tenho conta</a>{% endblock %}
 
 {% block content %}
-  <div class="container d-flex align-items-center justify-content-center py-5" style="min-height:70vh">
-    <div class="card p-4" style="width:100%; max-width:460px;">
-      <h3 class="text-center text-primary mb-3">Cadastro de Paciente</h3>
-      <form method="POST" action="{{ url_for('user.register') }}">
-        <div class="mb-3">
-          <label class="form-label">Nome completo</label>
-          <input type="text" class="form-control" name="nome" placeholder="Digite seu nome completo" required>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-6 col-xl-5">
+        <div class="card p-4 p-md-5">
+          <div class="text-center mb-4">
+            <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Novo paciente</span>
+            <h2 class="fw-bold mt-2">Crie seu acesso</h2>
+            <p class="muted mb-0">Preencha seus dados para acompanhar consultas e solicitar ajustes.</p>
+          </div>
+
+          <form method="POST" action="{{ url_for('user.register') }}" class="vstack gap-3">
+            <div>
+              <label class="form-label small text-uppercase text-muted">Nome completo</label>
+              <input type="text" class="form-control border-0 shadow-sm" name="nome" placeholder="Digite seu nome completo" required>
+            </div>
+            <div>
+              <label class="form-label small text-uppercase text-muted">E-mail</label>
+              <input type="email" class="form-control border-0 shadow-sm" name="email" placeholder="exemplo@email.com" required>
+            </div>
+            <div>
+              <label class="form-label small text-uppercase text-muted">Senha</label>
+              <input type="password" class="form-control border-0 shadow-sm" name="senha" placeholder="Crie uma senha" required>
+              <p class="form-hint mt-1">Use ao menos 6 caracteres e combine letras e números.</p>
+            </div>
+            <input type="hidden" name="tipo_usuario" value="paciente">
+
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-person-plus-fill me-1"></i> Cadastrar
+            </button>
+          </form>
+
+          <div class="text-center mt-4">
+            <small class="muted">Já tem uma conta?
+              <a href="{{ url_for('user.user') }}" class="fw-semibold text-decoration-none">Faça login</a>
+            </small>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">E-mail</label>
-          <input type="email" class="form-control" name="email" placeholder="exemplo@email.com" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Senha</label>
-          <input type="password" class="form-control" name="senha" placeholder="Crie uma senha" required>
-        </div>
-        <input type="hidden" name="tipo_usuario" value="paciente">
-        <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
-      </form>
-      <div class="text-center mt-3">
-        <small>Já tem uma conta?
-          <a href="{{ url_for('user.user') }}" class="text-decoration-none">Faça login</a>
-        </small>
       </div>
     </div>
   </div>
