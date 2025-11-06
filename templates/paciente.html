@@ -1,23 +1,156 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Clinica Unialfa</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-      <div class="container">
-        <a class="navbar-brand fw-bold" href="#">Clínica Unialfa</a>
-        <div class="nome-paciente">Guilherme Barros</div>
+{% extends "base.html" %}
+{% block title %}Painel do Paciente — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="page-title text-center mb-4">Minhas Consultas</h2>
+
+  {% if agendamentos %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th><th>Hora</th><th>Médico</th><th>Procedimento</th><th>Sala</th><th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in agendamentos %}
+        <tr>
+          <td>{{ a['data'] }}</td>
+          <td>{{ a['hora'] }}</td>
+          <td>{{ a['medico'] }}</td>
+          <td>{{ a['procedimento'] }}</td>
+          <td>{{ a['sala'] }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalAjuste"
+                    data-agendamento="{{ a['id'] }}"
+                    data-data="{{ a['data'] }}"
+                    data-hora="{{ a['hora'] }}">
+              <i class="bi bi-calendar2-week"></i> Solicitar ajuste
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-info text-center">Você ainda não possui consultas agendadas.</div>
+  {% endif %}
+
+  <h5 class="mt-5 mb-2">Minhas solicitações</h5>
+  {% if ajustes %}
+    <ul class="list-group">
+      {% for j in ajustes %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <strong>Para: {{ j['novo_dia'] }} {{ j['nova_hora'] }}</strong>
+                {% if j['status'] == 'pendente' %}
+                  <span class="badge text-bg-warning">Pendente</span>
+                {% elif j['status'] == 'aceito' %}
+                  <span class="badge text-bg-success">Aceito</span>
+                {% elif j['status'] == 'negado' %}
+                  <span class="badge text-bg-danger">Negado</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ j['status'] }}</span>
+                {% endif %}
+              </div>
+
+              {% if j['motivo'] %}
+                <div class="small text-muted mt-1">
+                  <strong>Seu motivo:</strong> {{ j['motivo'] }}
+                </div>
+              {% endif %}
+
+              {% if j['status'] == 'negado' and j['motivo_negativa'] %}
+                <div class="small mt-1">
+                  <strong>Motivo da negativa:</strong>
+                  <span class="text-muted">{{ j['motivo_negativa'] }}</span>
+                </div>
+              {% endif %}
+
+              <div class="small text-muted mt-1">
+                Consulta atual: {{ j['data_atual'] }} {{ j['hora_atual'] }}
+              </div>
+            </div>
+
+            <small class="text-muted">enviado em {{ j['criado_em'] }}</small>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="alert alert-light">Nenhuma solicitação enviada.</div>
+  {% endif %}
+</div>
+
+<!-- Modal única, fora da tabela -->
+<div class="modal fade" id="modalAjuste" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" id="formAjuste" method="POST">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Solicitar ajuste</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-        <div class="d-flex">
-          <a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label">Novo dia</label>
+            <input type="date" name="novo_dia" class="form-control" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Nova hora</label>
+            <input type="time" name="nova_hora" class="form-control" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Motivo (opcional)</label>
+            <textarea name="motivo" class="form-control" rows="3" maxlength="240"
+                      placeholder="Descreva brevemente o motivo..."></textarea>
+          </div>
         </div>
-    </nav>
-        <div class="container my-5">
-      <h2 class="text-center mb-4">Painel da Paciente</h2>
-      <p class="text-center text-muted mb-5">Verifique suas informações e agendamentos.</p>
-  </body>
-</html>
+        <small class="text-muted d-block mt-2">
+          A recepção analisará sua sugestão e retornará.
+        </small>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary w-100" id="btnEnviar">
+          <i class="bi bi-send"></i> Enviar solicitação
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modalEl = document.getElementById('modalAjuste');
+  const form = document.getElementById('formAjuste');
+  const btn = document.getElementById('btnEnviar');
+
+  modalEl.addEventListener('show.bs.modal', event => {
+    const button = event.relatedTarget;
+    const agId = button.getAttribute('data-agendamento');
+    const data = button.getAttribute('data-data');
+    const hora = button.getAttribute('data-hora');
+
+    modalEl.querySelector('.modal-title').innerText = `Solicitar ajuste — ${data} ${hora}`;
+    form.action = `/user/paciente/solicitar_ajuste/${agId}`;
+    form.reset();
+  });
+
+  form.addEventListener('submit', () => {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+  });
+});
+</script>
+{% endblock %}

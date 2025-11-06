@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Solicitações de Ajuste — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+<a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-light btn-sm">Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h3 class="page-title mb-4">Solicitações de Ajuste</h3>
+
+  {% if pendentes and pendentes|length > 0 %}
+    <div class="list-group">
+      {% for r in pendentes %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div class="me-3">
+              <div class="fw-semibold">
+                {{ r['paciente'] }} → {{ r['medico'] }} | Sala {{ r['sala'] }}
+              </div>
+              <div class="small text-muted">
+                Atual: <strong>{{ r['data_atual'] }} {{ r['hora_atual'] }}</strong>
+                &nbsp;|&nbsp;
+                Solicitado: <strong>{{ r['novo_dia'] }} {{ r['nova_hora'] }}</strong>
+              </div>
+              {% if r['motivo'] %}
+                <div class="small mt-1">
+                  <strong>Motivo do paciente:</strong> <span class="text-muted">{{ r['motivo'] }}</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="ms-auto">
+              <div class="d-flex gap-2">
+                <!-- Negar (abre modal para motivo) -->
+                <button class="btn btn-outline-danger btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalNegar{{ r['id'] }}">
+                  Negar
+                </button>
+
+                <!-- Aceitar diretamente -->
+                <form method="POST"
+                      action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}">
+                  <input type="hidden" name="acao" value="aceitar">
+                  <button class="btn btn-success btn-sm">Aceitar</button>
+                </form>
+              </div>
+
+              <!-- Link para ver horários disponíveis -->
+              <div class="mt-2">
+                <button class="btn btn-link p-0 small"
+                        data-med="{{ r['medico_id'] }}"
+                        data-sala="{{ r['sala_id'] }}"
+                        data-dia="{{ r['novo_dia'] }}"
+                        onclick="carregarHorarios(this, 'h{{ r['id'] }}')">
+                  Ver horários disponíveis no dia
+                </button>
+                <div class="small text-muted" id="h{{ r['id'] }}"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal: motivo da negativa -->
+        <div class="modal fade" id="modalNegar{{ r['id'] }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" method="POST"
+                  action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}">
+              <input type="hidden" name="acao" value="negar">
+              <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Negar solicitação de ajuste</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <p class="mb-2 small text-muted">
+                  Explique o motivo da negativa. O paciente verá esta mensagem.
+                </p>
+                <label class="form-label">Motivo da negativa</label>
+                <textarea name="motivo_negativa"
+                          class="form-control"
+                          rows="3"
+                          required
+                          maxlength="300"
+                          placeholder="Ex.: Agenda cheia no dia solicitado, médico estará em congresso, etc."></textarea>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-danger w-100">Enviar negativa</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-light">Nenhuma solicitação pendente.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+async function carregarHorarios(btn, targetId){
+  const med  = btn.getAttribute('data-med');
+  const sala = btn.getAttribute('data-sala');
+  const dia  = btn.getAttribute('data-dia');
+  const target = document.getElementById(targetId);
+  target.textContent = 'Carregando...';
+  try {
+    const res = await fetch(`/user/recepcionista/horarios_disponiveis?medico_id=${med}&sala_id=${sala}&dia=${dia}`);
+    const list = await res.json();
+    target.textContent = list.length ? ('Livres: ' + list.join(', ')) : 'Sem horários livres.';
+  } catch (e) {
+    target.textContent = 'Erro ao carregar horários.';
+  }
+}
+</script>
+{% endblock %}

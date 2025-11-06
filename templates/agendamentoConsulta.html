@@ -1,116 +1,107 @@
 {% extends "base.html" %}
-{% block title %}Agendar Consulta — Clínica Vida+{% endblock %}
-{% block nav_actions %}<a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-light btn-sm">Voltar</a>{% endblock %}
+{% block title %}Cadastrar Agendamento de Consulta — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+<a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-light btn-sm">Voltar</a>
+{% endblock %}
+
 {% block content %}
-  <div class="container py-5">
-    <div class="card">
-      <div class="card-header bg-primary text-white text-center py-3" style="border-top-left-radius:16px;border-top-right-radius:16px;">
-        <h4 class="mb-0">Cadastrar Agendamento de Consulta</h4>
-      </div>
-      <div class="card-body p-4">
-        <form method="POST" action="{{ url_for('user.agendar_consulta') }}">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Paciente</label>
-              <select name="paciente_id" class="form-select" required>
-                <option value="">Selecione um paciente</option>
-                {% for paciente in pacientes %}
-                  <option value="{{ paciente['id'] }}">{{ paciente['nome'] }}</option>
-                {% endfor %}
-              </select>
+<div class="container py-5">
+  <div class="card shadow-sm p-4">
+    <h3 class="page-title text-center mb-4 text-primary">Cadastrar Agendamento de Consulta</h3>
+
+    <form id="formAg" method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Paciente</label>
+          <select class="form-select" name="paciente_id" id="paciente_id" required>
+            <option value="">Selecione um paciente</option>
+            {% for p in pacientes %}
+              <option value="{{ p.id }}">{{ p.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Médico</label>
+          <select class="form-select" id="medico_id" name="medico_id" required>
+            <option value="">Selecione um médico</option>
+            {% for m in medicos %}
+              <option value="{{ m.id }}">{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Procedimento</label>
+          <select class="form-select" id="procedimento_id" name="procedimento_id" required>
+            <option value="">Selecione o procedimento</option>
+            {% if procedimentos|length == 0 %}
+              <option value="__particular__">Consulta Particular</option>
+              <option value="__convenio__">Consulta Convênio</option>
+              <option value="__receita__">Solicitação de Receita</option>
+            {% else %}
+              {% for proc in procedimentos %}
+                <option value="{{ proc.id }}">{{ proc.nome }}</option>
+              {% endfor %}
+            {% endif %}
+          </select>
+
+          <!-- Boxes dinâmicos (se você já usava, pode manter abaixo) -->
+          <div id="box_convenios" style="display:none;" class="mt-3">
+            <label class="form-label">Convênio</label>
+            <select class="form-select" name="convenio_subtipo" id="convenio_subtipo">
+              <option value="">Selecione o convênio</option>
+              <option>Ipasgo</option><option>Unimed</option><option>Hapvida</option>
+              <option>SulAmérica</option><option>Bradesco Saúde</option>
+            </select>
+          </div>
+          <div id="box_particular" style="display:none;" class="mt-3">
+            <div class="alert alert-info mb-0">Valor da consulta particular: <strong>R$ 180,00</strong></div>
+            <input type="hidden" name="valor_particular" value="180.00"/>
+          </div>
+          <div id="box_receita" style="display:none;" class="mt-3">
+            <label class="form-label">Médico (para a receita)</label>
+            <select class="form-select" name="medico_receita_id" id="medico_receita_id">
+              <option value="">Selecione o médico</option>
+              {% for m in medicos %}
+                <option value="{{ m.id }}">{{ m.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Sala</label>
+          <select class="form-select" id="sala_id" name="sala_id" required>
+            <option value="">Selecione a sala</option>
+            {% for s in salas %}
+              <option value="{{ s.id }}">{{ s.nome }}</option>
+            {% endfor %}
+          </select>
+
+          <div class="row g-3 mt-1">
+            <div class="col-6">
+              <label class="form-label">Data</label>
+              <input type="date" id="data" name="data" class="form-control" required>
             </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Médico</label>
-              <select name="medico_id" id="medico_id" class="form-select" required>
-                <option value="">Selecione um médico</option>
-                {% for medico in medicos %}
-                  <option value="{{ medico['id'] }}">{{ medico['nome'] }}</option>
-                {% endfor %}
+            <div class="col-6">
+              <label class="form-label">Hora</label>
+              <select id="hora" name="hora" class="form-select" required>
+                <option value="">Selecione médico, sala e data</option>
               </select>
-            </div>
-
-            <!-- PROCEDIMENTO + BOXES DINÂMICOS NA MESMA COLUNA -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Procedimento</label>
-              <select name="procedimento_id" id="procedimento_id" class="form-select" required>
-                <option value="">Selecione o procedimento</option>
-                {% if procedimentos|length == 0 %}
-                  <option value="__particular__">Consulta Particular</option>
-                  <option value="__convenio__">Consulta Convênio</option>
-                  <option value="__receita__">Solicitação de Receita</option>
-                {% else %}
-                  {% for proc in procedimentos %}
-                    <option value="{{ proc['id'] }}">{{ proc['nome'] }}</option>
-                  {% endfor %}
-                {% endif %}
-              </select>
-              <div class="form-hint">Se não houver registros, opções padrão serão exibidas.</div>
-
-              <!-- Box Convênio (EMBAIXO de Procedimento) -->
-              <div id="box_convenios" style="display:none;" class="mt-3">
-                <label class="form-label fw-semibold">Convênio</label>
-                <select class="form-select" name="convenio_subtipo" id="convenio_subtipo">
-                  <option value="">Selecione o convênio</option>
-                  <option>Ipasgo</option>
-                  <option>Unimed</option>
-                  <option>Hapvida</option>
-                  <option>SulAmérica</option>
-                  <option>Bradesco Saúde</option>
-                </select>
-              </div>
-
-              <!-- Box Particular -->
-              <div id="box_particular" style="display:none;" class="mt-3">
-                <div class="alert alert-info mb-0">
-                  Valor da consulta particular: <strong>R$ 180,00</strong>
-                </div>
-                <input type="hidden" name="valor_particular" value="180.00"/>
-              </div>
-
-              <!-- Box Receita -->
-              <div id="box_receita" style="display:none;" class="mt-3">
-                <label class="form-label fw-semibold">Médico (para a receita)</label>
-                <select class="form-select" name="medico_receita_id" id="medico_receita_id">
-                  <option value="">Selecione o médico</option>
-                  {% for medico in medicos %}
-                    <option value="{{ medico['id'] }}">{{ medico['nome'] }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Sala</label>
-              <select name="sala_id" class="form-select" required>
-                <option value="">Selecione a sala</option>
-                {% for sala in salas %}
-                  <option value="{{ sala['id'] }}">{{ sala['nome'] }}</option>
-                {% endfor %}
-              </select>
-
-              <div class="row g-3 mt-1">
-                <div class="col-6">
-                  <label class="form-label fw-semibold">Data</label>
-                  <input type="date" name="data" class="form-control" required>
-                </div>
-                <div class="col-6">
-                  <label class="form-label fw-semibold">Hora</label>
-                  <input type="time" name="hora" class="form-control" required>
-                </div>
-              </div>
             </div>
           </div>
-
-          <div class="text-center mt-4">
-            <button type="submit" class="btn btn-success px-5 py-2">
-              <i class="bi bi-check2-circle"></i> Confirmar Agendamento
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+
+      <div class="text-center mt-4">
+        <button type="submit" id="btnSubmit" class="btn btn-success px-4">
+          <i class="bi bi-check-circle"></i> Confirmar Agendamento
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 {% endblock %}
 
 {% block body_scripts %}
@@ -120,7 +111,6 @@
   const boxConv = document.getElementById('box_convenios');
   const boxPart = document.getElementById('box_particular');
   const boxRece = document.getElementById('box_receita');
-
   function normalize(s){ return (s || '').toLowerCase(); }
   function updateVisibility(){
     const label = proc.options[proc.selectedIndex]?.text || '';
@@ -134,5 +124,85 @@
   }
   if(proc){ proc.addEventListener('change', updateVisibility); updateVisibility(); }
 })();
+</script>
+
+<script>
+// Carregar horários disponíveis via AJAX
+document.addEventListener('DOMContentLoaded', () => {
+  const dataInput = document.getElementById('data');
+  const medicoSelect = document.getElementById('medico_id');
+  const salaSelect = document.getElementById('sala_id');
+  const horaSelect = document.getElementById('hora');
+
+  async function carregarHorarios() {
+    const dia = dataInput.value;
+    const medico = medicoSelect.value;
+    const sala = salaSelect.value;
+
+    if (!dia || !medico || !sala) {
+      horaSelect.innerHTML = '<option value="">Selecione médico, sala e data</option>';
+      return;
+    }
+
+    horaSelect.innerHTML = '<option>Carregando horários...</option>';
+    try {
+      const res = await fetch(`/user/recepcionista/horarios_disponiveis?medico_id=${medico}&sala_id=${sala}&dia=${dia}`);
+      const list = await res.json();
+      if (!Array.isArray(list) || list.length === 0) {
+        horaSelect.innerHTML = '<option value="">Nenhum horário livre neste dia</option>';
+      } else {
+        horaSelect.innerHTML = list.map(h => `<option value="${h}">${h}</option>`).join('');
+      }
+    } catch (e) {
+      horaSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
+      window.spawnToast('Erro ao carregar horários.', 'danger');
+    }
+  }
+
+  dataInput.addEventListener('change', carregarHorarios);
+  medicoSelect.addEventListener('change', carregarHorarios);
+  salaSelect.addEventListener('change', carregarHorarios);
+
+  // Submeter por AJAX com toasts
+  const form = document.getElementById('formAg');
+  const btn = document.getElementById('btnSubmit');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando...';
+
+    const payload = {
+      paciente_id:   document.getElementById('paciente_id').value,
+      medico_id:     medicoSelect.value,
+      procedimento_id: document.getElementById('procedimento_id').value,
+      sala_id:       salaSelect.value,
+      data:          dataInput.value,
+      hora:          document.getElementById('hora').value
+    };
+
+    try {
+      const res = await fetch('{{ url_for("user.agendar_consulta") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json','X-Requested-With':'XMLHttpRequest'},
+        body: JSON.stringify(payload)
+      });
+      const out = await res.json();
+
+      if (!res.ok || !out.ok) {
+        window.spawnToast(out.msg || 'Erro ao agendar.', 'danger');
+      } else {
+        window.spawnToast(out.msg || 'Consulta agendada com sucesso!', 'success');
+        // Limpa formulário e horários
+        form.reset();
+        document.getElementById('hora').innerHTML = '<option value="">Selecione médico, sala e data</option>';
+      }
+    } catch (err) {
+      window.spawnToast('Falha na comunicação com o servidor.', 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirmar Agendamento';
+    }
+  });
+});
 </script>
 {% endblock %}

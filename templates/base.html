@@ -17,6 +17,19 @@
     .muted { color:#6c757d; }
     .container-narrow { max-width:980px; }
     .form-hint { font-size:.85rem; color:#6c757d; }
+
+    /* Toast Container */
+    #toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1080;
+    }
+    .toast {
+      min-width: 280px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
   </style>
 
   {% block head_extra %}{% endblock %}
@@ -30,22 +43,73 @@
     </div>
   </nav>
 
-  <!-- Mensagens flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="container mt-3">
+  <!-- Toasts (mensagens flash) -->
+  <div id="toast-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} text-center mb-2">{{ message }}</div>
+          <div class="toast align-items-center text-bg-{{ 'success' if category=='success'
+            else 'danger' if category=='danger'
+            else 'warning' if category=='warning'
+            else 'info' }} border-0 mb-2" role="alert" data-bs-delay="4000">
+            <div class="d-flex">
+              <div class="toast-body">
+                {% if category == 'success' %}
+                  <i class="bi bi-check-circle-fill me-2"></i>
+                {% elif category == 'warning' %}
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {% elif category == 'danger' %}
+                  <i class="bi bi-x-circle-fill me-2"></i>
+                {% else %}
+                  <i class="bi bi-info-circle-fill me-2"></i>
+                {% endif %}
+                {{ message }}
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+          </div>
         {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+      {% endif %}
+    {% endwith %}
+  </div>
 
   <!-- Conteúdo -->
   {% block content %}{% endblock %}
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+  // inicializa todos os toasts automaticamente
+  document.addEventListener('DOMContentLoaded', () => {
+    const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+    toastElList.forEach(el => new bootstrap.Toast(el).show());
+  });
+  </script>
+<script>
+  // Função global para criar toasts via JS (sem reload)
+  window.spawnToast = function(message, category='info', delay=4000) {
+    const map = { success:'success', warning:'warning', danger:'danger', info:'info' };
+    const icon = {
+      success:'<i class="bi bi-check-circle-fill me-2"></i>',
+      warning:'<i class="bi bi-exclamation-triangle-fill me-2"></i>',
+      danger:'<i class="bi bi-x-circle-fill me-2"></i>',
+      info:'<i class="bi bi-info-circle-fill me-2"></i>'
+    };
+    const color = map[category] || 'info';
+    const box = document.createElement('div');
+    box.className = `toast align-items-center text-bg-${color} border-0 mb-2`;
+    box.setAttribute('role', 'alert');
+    box.setAttribute('data-bs-delay', String(delay));
+    box.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${icon[color] || ''}${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>`;
+    document.getElementById('toast-container').appendChild(box);
+    new bootstrap.Toast(box).show();
+  };
+</script>
+
   {% block body_scripts %}{% endblock %}
 
   <!-- Rodapé -->

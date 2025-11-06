@@ -1,70 +1,49 @@
-<!doctype html>
-<html lang="pt-br">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Painel da Recepcionista</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-  </head>
-  <body class="bg-light">
+{% extends "base.html" %}
+{% block title %}Painel da Recepcionista — Clínica Vida+{% endblock %}
+{% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center page-title mb-2">Painel da Recepcionista</h2>
+  <p class="text-center muted mb-4">Gerencie usuários, agendamentos, salas e solicitações de ajuste.</p>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-      <div class="container">
-        <a class="navbar-brand fw-bold" href="#">Clínica Vida+</a>
-        <div class="d-flex">
-          <a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
-        </div>
-      </div>
-    </nav>
+  {% if pendentes and pendentes|int > 0 %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <div><strong>{{ pendentes }}</strong> solicitação(ões) de ajuste pendente(s).</div>
+    <a class="btn btn-sm btn-dark" href="{{ url_for('user.lista_ajustes') }}">Ver solicitações</a>
+  </div>
+  {% else %}
+  <div class="alert alert-light text-center">Nenhuma solicitação pendente.</div>
+  {% endif %}
 
-    <div class="container my-5">
-      <h2 class="text-center mb-4">Painel da Recepcionista</h2>
-      <p class="text-center text-muted mb-5">Gerencie usuários, agendamentos, salas e procedimentos da clínica.</p>
-
-      <div class="row g-4">
-        <!-- Cadastro de Usuários -->
-        <div class="col-md-3">
-          <div class="card shadow-sm h-100 text-center p-3">
-            <i class="bi bi-people-fill text-primary fs-1 mb-3"></i>
-            <h5>Cadastro de Usuários</h5>
-            <p class="text-muted small">Crie novos médicos, pacientes ou recepcionistas.</p>
-            <a href="{{ url_for('user.cadastrar_usuarios') }}" class="btn btn-primary w-100">Acessar</a>
-          </div>
-        </div>
-
-        <!-- Cadastro de Agendamentos -->
-        <div class="col-md-3">
-          <div class="card shadow-sm h-100 text-center p-3">
-            <i class="bi bi-calendar2-check text-success fs-1 mb-3"></i>
-            <h5>Agendamentos</h5>
-            <p class="text-muted small">Gerencie as consultas e horários disponíveis.</p>
-            <a href="{{ url_for('user.agendar_consulta') }}" class="btn btn-success w-100">Agendar</a>
-          </div>
-        </div>
-
-        <!-- Cadastro de Procedimentos -->
-        <div class="col-md-3">
-          <div class="card shadow-sm h-100 text-center p-3">
-            <i class="bi bi-clipboard2-pulse text-warning fs-1 mb-3"></i>
-            <h5>Procedimentos</h5>
-            <p class="text-muted small">Cadastre e edite tipos de procedimentos clínicos.</p>
-            <a href="#" class="btn btn-warning w-100 disabled">Em breve</a>
-          </div>
-        </div>
-
-        <!-- Cadastro de Salas -->
-        <div class="col-md-3">
-          <div class="card shadow-sm h-100 text-center p-3">
-            <i class="bi bi-hospital text-danger fs-1 mb-3"></i>
-            <h5>Salas</h5>
-            <p class="text-muted small">Adicione e gerencie as salas de atendimento.</p>
-            <a href="#" class="btn btn-danger w-100 disabled">Em breve</a>
-          </div>
-        </div>
+  <div class="row g-4 mt-1">
+    <div class="col-md-6 col-lg-3">
+      <div class="card text-center p-3 h-100">
+        <h5>Cadastro de Usuários</h5>
+        <p class="muted small">Crie novos médicos, pacientes ou recepcionistas.</p>
+        <a href="{{ url_for('user.cadastrar_usuarios') }}" class="btn btn-primary w-100">Acessar</a>
       </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
+    <div class="col-md-6 col-lg-3">
+      <div class="card text-center p-3 h-100">
+        <h5>Agendamentos</h5>
+        <p class="muted small">Gerencie consultas e horários disponíveis.</p>
+        <a href="{{ url_for('user.agendar_consulta') }}" class="btn btn-success w-100">Agendar</a>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card text-center p-3 h-100">
+        <h5>Procedimentos</h5>
+        <p class="muted small">Cadastre e edite tipos de procedimentos clínicos.</p>
+        <button class="btn btn-warning w-100" disabled>Em breve</button>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card text-center p-3 h-100">
+        <h5>Salas</h5>
+        <p class="muted small">Adicione e gerencie as salas de atendimento.</p>
+        <button class="btn btn-danger w-100" disabled>Em breve</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

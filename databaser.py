@@ -1,7 +1,7 @@
 import sqlite3, os
 from werkzeug.security import generate_password_hash
+from datetime import datetime, time, timedelta
 
-# Caminho ABSOLUTO garante que app e seed usem o mesmo arquivo .db
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'databaser.db')
 
@@ -14,7 +14,7 @@ def criar_tabelas():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # --- Tabelas ---
+    # --- tabelas base ---
     cur.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,23 +24,22 @@ def criar_tabelas():
             tipo_usuario TEXT NOT NULL
         )
     ''')
-
     cur.execute('''
         CREATE TABLE IF NOT EXISTS procedimentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
-            descricao TEXT
+            descricao TEXT,
+            UNIQUE(nome)
         )
     ''')
-
     cur.execute('''
         CREATE TABLE IF NOT EXISTS salas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
-            capacidade INTEGER
+            capacidade INTEGER,
+            UNIQUE(nome)
         )
     ''')
-
     cur.execute('''
         CREATE TABLE IF NOT EXISTS agendamentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,8 +47,8 @@ def criar_tabelas():
             medico_id INTEGER NOT NULL,
             procedimento_id INTEGER NOT NULL,
             sala_id INTEGER NOT NULL,
-            data TEXT NOT NULL,
-            hora TEXT NOT NULL,
+            data TEXT NOT NULL, -- YYYY-MM-DD
+            hora TEXT NOT NULL, -- HH:MM
             FOREIGN KEY (paciente_id) REFERENCES usuarios (id),
             FOREIGN KEY (medico_id) REFERENCES usuarios (id),
             FOREIGN KEY (procedimento_id) REFERENCES procedimentos (id),
@@ -57,32 +56,35 @@ def criar_tabelas():
         )
     ''')
 
-    # --- Deduplicação preventiva (remove linhas repetidas preservando a 1ª) ---
-    cur.execute("""DELETE FROM procedimentos
-                   WHERE rowid NOT IN (
-                     SELECT MIN(rowid) FROM procedimentos GROUP BY nome
-                   )""")
-    cur.execute("""DELETE FROM salas
-                   WHERE rowid NOT IN (
-                     SELECT MIN(rowid) FROM salas GROUP BY nome
-                   )""")
+    # --- solicitações de ajuste de agendamento ---
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS agendamento_ajustes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agendamento_id INTEGER NOT NULL,
+            novo_dia TEXT NOT NULL,  -- YYYY-MM-DD
+            nova_hora TEXT NOT NULL, -- HH:MM
+            motivo TEXT,
+            status TEXT NOT NULL DEFAULT 'pendente', -- pendente|aceito|negado
+            criado_em TEXT NOT NULL, -- ISO
+            FOREIGN KEY (agendamento_id) REFERENCES agendamentos (id)
+        )
+    ''')
 
-    # --- Índices UNIQUE (garantem que não duplique mais no futuro) ---
+    # dedup seguro
+    cur.execute("""DELETE FROM procedimentos WHERE rowid NOT IN (SELECT MIN(rowid) FROM procedimentos GROUP BY nome)""")
+    cur.execute("""DELETE FROM salas         WHERE rowid NOT IN (SELECT MIN(rowid) FROM salas         GROUP BY nome)""")
     cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_procedimentos_nome ON procedimentos(nome)")
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_salas_nome ON salas(nome)")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_salas_nome         ON salas(nome)")
 
-    # --- Seeds idempotentes ---
+    # seeds
     for nome, desc in [
         ("Consulta Particular", "Atendimento particular"),
         ("Consulta Convênio", "Atendimento via convênios cadastrados"),
         ("Solicitação de Receita", "Solicitação/renovação de receita"),
     ]:
         cur.execute("INSERT OR IGNORE INTO procedimentos (nome, descricao) VALUES (?, ?)", (nome, desc))
-
     for nome, cap in [("Sala 1", 1), ("Sala 2", 1), ("Sala 3", 1)]:
         cur.execute("INSERT OR IGNORE INTO salas (nome, capacidade) VALUES (?, ?)", (nome, cap))
-
-    # Usuário padrão: Recepcionista Master (senha 12345)
     cur.execute("SELECT 1 FROM usuarios WHERE email = ?", ("recepcionistamaster@gmail.com",))
     if not cur.fetchone():
         cur.execute(
@@ -93,6 +95,29 @@ def criar_tabelas():
     conn.commit()
     conn.close()
 
-if __name__ == "__main__":
-    criar_tabelas()
-    print("Banco pronto em", DB_PATH)
+# ---------- util: calcular horários disponíveis ----------
+def horarios_disponiveis(medico_id:int, sala_id:int, dia_str:str, passo_min=30):
+    """
+    Gera timeslots entre 08:00-17:00 para a data dada,
+    removendo horários já ocupados (sala OU médico ocupados).
+    Retorna lista de strings 'HH:MM'.
+    """
+    conn = conectar()
+    c = conn.cursor()
+    # horários ocupados por sala OU por médico na mesma data
+    c.execute("""SELECT hora FROM agendamentos WHERE data=? AND (sala_id=? OR medico_id=?)""",
+              (dia_str, sala_id, medico_id))
+    ocupados = {row["hora"] for row in c.fetchall()}
+    conn.close()
+
+    inicio = time(8, 0); fim = time(17, 0)
+    t = datetime.strptime(f"{dia_str} {inicio.hour:02d}:{inicio.minute:02d}", "%Y-%m-%d %H:%M")
+    end = datetime.strptime(f"{dia_str} {fim.hour:02d}:{fim.minute:02d}", "%Y-%m-%d %H:%M")
+
+    livres = []
+    while t <= end:
+        hhmm = t.strftime("%H:%M")
+        if hhmm not in ocupados:
+            livres.append(hhmm)
+        t += timedelta(minutes=passo_min)
+    return livres
