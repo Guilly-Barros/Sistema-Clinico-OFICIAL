@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}Procedimentos — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+  <a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-outline-light btn-sm me-2">Voltar</a>
+  <a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>
+{% endblock %}
+{% block head_extra %}
+  {{ super() }}
+  <style>
+    .table-responsive { transition: box-shadow .2s ease; }
+    .table-responsive.table-scrolling { box-shadow: inset 6px 0 12px -12px rgba(13,110,253,.35); }
+    .table-responsive thead th { white-space: nowrap; }
+    .agenda-row-detail .border-top { border-color: rgba(13,110,253,.15) !important; }
+    .offcanvas .list-group-item { border: none; border-bottom: 1px solid #eef1f6; }
+    .offcanvas .list-group-item:last-child { border-bottom: none; }
+    @media (max-width: 767.98px) {
+      .table-responsive { border-radius: 1rem !important; }
+      .card.shadow-sm { border-radius: 1.5rem; }
+      .offcanvas-end { width: min(100vw, 420px); }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="text-center mb-4">
+    <h2 class="page-title mb-2">Procedimentos</h2>
+    <p class="muted mb-0">Gerencie agendamentos em andamento e administre o catálogo de procedimentos.</p>
+  </div>
+
+  <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <span id="agenda-total" class="badge rounded-pill bg-primary-subtle text-primary-emphasis px-3 py-2">{{ agendamentos|length }} agendamento(s)</span>
+      <div class="d-none d-md-flex align-items-center gap-2 text-muted small">
+        <i class="bi bi-info-circle"></i>
+        <span>Acompanhe o status em tempo real e ajuste horários conflitantes.</span>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#procedimentosOffcanvas" aria-controls="procedimentosOffcanvas">
+        <i class="bi bi-list-task me-2"></i>Gerenciar procedimentos
+      </button>
+      <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#novoProcedimentoOffcanvas" aria-controls="novoProcedimentoOffcanvas">
+        <i class="bi bi-plus-circle me-2"></i>Novo procedimento
+      </button>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mx-auto" style="max-width: 1040px;">
+    <div class="card-body">
+      <div class="row g-2 align-items-center mb-4">
+        <div class="col-12 col-md-6">
+          <label for="agenda-search" class="form-label small text-uppercase text-muted mb-1">Buscar agendamento</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+            <input id="agenda-search" type="search" class="form-control border-0" placeholder="Procure por paciente, médico ou procedimento">
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <label for="agenda-status" class="form-label small text-uppercase text-muted mb-1">Status</label>
+          <select id="agenda-status" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for valor, rotulo in status_opcoes %}
+              <option value="{{ valor }}">{{ rotulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-uppercase text-muted mb-1">Data</label>
+          <input id="agenda-date" type="date" class="form-control form-control-sm">
+        </div>
+      </div>
+
+      <div class="table-responsive rounded-4 border border-light-subtle">
+        <table class="table align-middle mb-0">
+          <thead class="bg-light-subtle">
+            <tr class="text-muted small text-uppercase">
+              <th>Paciente</th>
+              <th>Médico</th>
+              <th>Procedimento</th>
+              <th class="text-nowrap">Data</th>
+              <th>Hora</th>
+              <th>Status</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="agendamentos-accordion">
+            {% if agendamentos %}
+              {% for agendamento in agendamentos %}
+              <tr class="agenda-row" data-search="{{ agendamento.paciente }} {{ agendamento.medico }} {{ agendamento.procedimento }}" data-status="{{ agendamento.status }}" data-date="{{ agendamento.data }}">
+                <td class="fw-semibold">{{ agendamento.paciente }}</td>
+                <td>{{ agendamento.medico }}</td>
+                <td>{{ agendamento.procedimento }}</td>
+                <td>{{ agendamento.data }}</td>
+                <td>{{ agendamento.hora }}</td>
+                <td>
+                  <span class="badge text-capitalize px-3 py-2" data-status-badge="{{ agendamento.status }}">{{ agendamento.status }}</span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#agendamento-{{ agendamento.id }}" aria-expanded="false" aria-controls="agendamento-{{ agendamento.id }}">
+                    Atualizar
+                  </button>
+                </td>
+              </tr>
+              <tr class="agenda-row-detail" data-parent="agendamento-{{ agendamento.id }}">
+                <td colspan="7" class="p-0">
+                  <div class="collapse" id="agendamento-{{ agendamento.id }}" data-bs-parent="#agendamentos-accordion">
+                    <div class="border-top px-3 py-3 bg-light-subtle">
+                      <form class="row g-2" method="post" action="{{ url_for('user.atualizar_agendamento', agendamento_id=agendamento.id) }}">
+                        <div class="col-md-4">
+                          <label class="form-label small text-uppercase text-muted">Novo status</label>
+                          <select name="status" class="form-select">
+                            <option value="">Manter</option>
+                            {% for valor, rotulo in status_opcoes %}
+                              <option value="{{ valor }}" {% if valor == agendamento.status %}selected{% endif %}>{{ rotulo }}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small text-uppercase text-muted">Nova data</label>
+                          <input type="date" name="data" class="form-control" value="{{ agendamento.data }}">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small text-uppercase text-muted">Nova hora</label>
+                          <input type="time" name="hora" class="form-control" value="{{ agendamento.hora }}">
+                        </div>
+                        <div class="col-12 text-end">
+                          <button type="submit" class="btn btn-primary btn-sm">Salvar alterações</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+              <tr id="agenda-empty" class="d-none">
+                <td colspan="7" class="text-center text-muted py-4">Nenhum agendamento corresponde aos filtros informados.</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">Nenhum agendamento encontrado.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Offcanvas: Gerenciar procedimentos -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="procedimentosOffcanvas" aria-labelledby="procedimentosOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="procedimentosOffcanvasLabel">Procedimentos cadastrados</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+  </div>
+  <div class="offcanvas-body">
+    {% if procedimentos %}
+      <div class="list-group list-group-flush">
+        {% for procedimento in procedimentos %}
+          <div class="list-group-item px-0">
+            <form method="post" action="{{ url_for('user.editar_procedimento', procedimento_id=procedimento.id) }}" class="row g-2">
+              <div class="col-12">
+                <label class="form-label small text-uppercase text-muted">Nome</label>
+                <input type="text" name="nome" class="form-control" value="{{ procedimento.nome }}" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small text-uppercase text-muted">Descrição</label>
+                <textarea name="descricao" class="form-control" rows="2" placeholder="Detalhes adicionais">{{ procedimento.descricao or '' }}</textarea>
+              </div>
+              <div class="col-12 text-end">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Atualizar</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted small mb-0">Nenhum procedimento cadastrado até o momento.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Offcanvas: Novo procedimento -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="novoProcedimentoOffcanvas" aria-labelledby="novoProcedimentoOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="novoProcedimentoOffcanvasLabel">Cadastrar novo procedimento</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="post" action="{{ url_for('user.criar_procedimento') }}" class="needs-validation" novalidate>
+      <div class="mb-3">
+        <label class="form-label">Nome</label>
+        <input type="text" name="nome" class="form-control" placeholder="Ex.: Consulta Odontológica" required>
+        <div class="invalid-feedback">Informe o nome do procedimento.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Descrição</label>
+        <textarea name="descricao" class="form-control" rows="3" placeholder="Detalhes adicionais (opcional)"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Salvar procedimento</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block body_scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('agenda-search');
+      const statusSelect = document.getElementById('agenda-status');
+      const dateInput = document.getElementById('agenda-date');
+      const rows = Array.from(document.querySelectorAll('.agenda-row'));
+
+      const badgeStyles = {
+        agendado: 'bg-primary-subtle text-primary-emphasis',
+        "em atendimento": 'bg-warning-subtle text-warning-emphasis',
+        concluido: 'bg-success-subtle text-success-emphasis',
+        cancelado: 'bg-danger-subtle text-danger-emphasis'
+      };
+
+      document.querySelectorAll('[data-status-badge]').forEach((badge) => {
+        const status = badge.dataset.statusBadge?.toLowerCase();
+        const classes = badgeStyles[status];
+        if (classes) {
+          badge.classList.add(...classes.split(' '));
+        } else {
+          badge.classList.add('bg-secondary-subtle', 'text-secondary-emphasis');
+        }
+      });
+
+      function normalise(text) {
+        return text
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[^a-z0-9\s]/g, '')
+          .trim();
+      }
+
+      function applyFilters() {
+        const query = normalise(searchInput.value || '');
+        const selectedStatus = normalise(statusSelect.value || '');
+        const selectedDate = dateInput.value;
+
+        rows.forEach((row) => {
+          const haystack = normalise(row.dataset.search || '');
+          const rowStatus = normalise(row.dataset.status || '');
+          const rowDate = row.dataset.date || '';
+
+          const matchesQuery = !query || haystack.includes(query);
+          const matchesStatus = !selectedStatus || rowStatus === selectedStatus;
+          const matchesDate = !selectedDate || rowDate === selectedDate;
+
+          const shouldShow = matchesQuery && matchesStatus && matchesDate;
+          row.style.display = shouldShow ? '' : 'none';
+
+          const detailRow = row.nextElementSibling;
+          if (detailRow?.classList.contains('agenda-row-detail')) {
+            if (!shouldShow) {
+              const collapseEl = detailRow.querySelector('.collapse.show');
+              if (collapseEl) {
+                bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).hide();
+              }
+            }
+            detailRow.style.display = shouldShow ? '' : 'none';
+          }
+        });
+
+        const visibleRows = rows.filter((row) => row.style.display !== 'none');
+        const totalBadge = document.getElementById('agenda-total');
+        if (totalBadge) {
+          const total = visibleRows.length;
+          totalBadge.textContent = total === 1 ? '1 agendamento' : `${total} agendamento(s)`;
+        }
+
+        const emptyRow = document.getElementById('agenda-empty');
+        if (emptyRow) {
+          emptyRow.classList.toggle('d-none', visibleRows.length !== 0);
+        }
+      }
+
+      searchInput?.addEventListener('input', applyFilters);
+      statusSelect?.addEventListener('change', applyFilters);
+      dateInput?.addEventListener('change', applyFilters);
+      applyFilters();
+
+      // Foca automaticamente no campo ao abrir o cadastro
+      const novoProcedimentoCanvas = document.getElementById('novoProcedimentoOffcanvas');
+      novoProcedimentoCanvas?.addEventListener('shown.bs.offcanvas', () => {
+        novoProcedimentoCanvas.querySelector('input[name="nome"]').focus();
+      });
+
+      // Permite limpar filtros rapidamente no mobile através de um gesto pull-down
+      let touchStartY = null;
+      document.addEventListener('touchstart', (event) => {
+        if (event.touches.length === 1) {
+          touchStartY = event.touches[0].clientY;
+        }
+      });
+      document.addEventListener('touchend', (event) => {
+        if (touchStartY !== null) {
+          const delta = event.changedTouches[0].clientY - touchStartY;
+          if (delta > 120 && window.scrollY === 0) {
+            searchInput.value = '';
+            statusSelect.value = '';
+            dateInput.value = '';
+            applyFilters();
+            window.spawnToast?.('Filtros limpos', 'info');
+          }
+        }
+        touchStartY = null;
+      });
+
+      // Mantém o cabeçalho fixo em dispositivos largos
+      const tableContainer = document.querySelector('.table-responsive');
+      if (tableContainer) {
+        tableContainer.addEventListener('scroll', () => {
+          const shadow = tableContainer.scrollLeft > 0;
+          tableContainer.classList.toggle('table-scrolling', shadow);
+        });
+      }
+    });
+  </script>
+{% endblock %}
