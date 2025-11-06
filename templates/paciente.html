@@ -30,7 +30,9 @@
                     data-bs-target="#modalAjuste"
                     data-agendamento="{{ a['id'] }}"
                     data-data="{{ a['data'] }}"
-                    data-hora="{{ a['hora'] }}">
+                    data-hora="{{ a['hora'] }}"
+                    data-medico="{{ a['medico_id'] }}"
+                    data-sala="{{ a['sala_id'] }}">
               <i class="bi bi-calendar2-week"></i> Solicitar ajuste
             </button>
           </td>
@@ -107,7 +109,9 @@
           </div>
           <div class="col-6">
             <label class="form-label">Nova hora</label>
-            <input type="time" name="nova_hora" class="form-control" required>
+            <select name="nova_hora" class="form-select" required>
+              <option value="">Selecione o dia para ver horários</option>
+            </select>
           </div>
           <div class="col-12">
             <label class="form-label">Motivo (opcional)</label>
@@ -135,17 +139,81 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalEl = document.getElementById('modalAjuste');
   const form = document.getElementById('formAjuste');
   const btn = document.getElementById('btnEnviar');
+  const diaInput = form.querySelector('input[name="novo_dia"]');
+  const horaSelect = form.querySelector('select[name="nova_hora"]');
 
   modalEl.addEventListener('show.bs.modal', event => {
     const button = event.relatedTarget;
     const agId = button.getAttribute('data-agendamento');
     const data = button.getAttribute('data-data');
     const hora = button.getAttribute('data-hora');
+    const medico = button.getAttribute('data-medico');
+    const sala = button.getAttribute('data-sala');
 
     modalEl.querySelector('.modal-title').innerText = `Solicitar ajuste — ${data} ${hora}`;
     form.action = `/user/paciente/solicitar_ajuste/${agId}`;
     form.reset();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i> Enviar solicitação';
+    horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+    horaSelect.disabled = true;
+
+    form.dataset.agendamento = agId;
+    form.dataset.medico = medico;
+    form.dataset.sala = sala;
+
+    diaInput.value = data;
+    carregarHorarios();
   });
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    form.reset();
+    delete form.dataset.agendamento;
+    delete form.dataset.medico;
+    delete form.dataset.sala;
+    horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+    horaSelect.disabled = true;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send"></i> Enviar solicitação';
+  });
+
+  async function carregarHorarios() {
+    const dia = diaInput.value;
+    const agendamentoId = form.dataset.agendamento;
+
+    if (!dia || !agendamentoId) {
+      horaSelect.innerHTML = '<option value="">Selecione o dia para ver horários</option>';
+      horaSelect.disabled = true;
+      return;
+    }
+
+    horaSelect.innerHTML = '<option value="">Carregando horários...</option>';
+    horaSelect.disabled = true;
+
+    try {
+      const res = await fetch(`/user/paciente/horarios_disponiveis?agendamento_id=${agendamentoId}&dia=${dia}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data?.msg || 'Erro ao carregar horários.';
+        horaSelect.innerHTML = `<option value="">${msg}</option>`;
+        return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        horaSelect.innerHTML = '<option value="">Nenhum horário livre neste dia</option>';
+        return;
+      }
+
+      horaSelect.innerHTML = '<option value="">Selecione um horário</option>' +
+        data.map(h => `<option value="${h}">${h}</option>`).join('');
+      horaSelect.disabled = false;
+    } catch (err) {
+      horaSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
+    }
+  }
+
+  diaInput.addEventListener('change', carregarHorarios);
 
   form.addEventListener('submit', () => {
     btn.disabled = true;

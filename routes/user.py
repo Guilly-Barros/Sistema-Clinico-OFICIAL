@@ -229,7 +229,8 @@ def visao_paciente():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT a.id, a.data, a.hora, s.nome AS sala, u.nome AS medico, p.nome AS procedimento
+        SELECT a.id, a.data, a.hora, a.medico_id, a.sala_id,
+               s.nome AS sala, u.nome AS medico, p.nome AS procedimento
         FROM agendamentos a
         JOIN salas s ON s.id=a.sala_id
         JOIN usuarios u ON u.id=a.medico_id
@@ -265,11 +266,28 @@ def solicitar_ajuste(agendamento_id):
     cur = conn.cursor()
 
     # valida: agendamento pertence ao paciente autenticado
-    cur.execute("SELECT id FROM agendamentos WHERE id=? AND paciente_id=?", (agendamento_id, session["usuario_id"]))
-    if not cur.fetchone():
+    cur.execute(
+        "SELECT id, medico_id, sala_id, data, hora FROM agendamentos WHERE id=? AND paciente_id=?",
+        (agendamento_id, session["usuario_id"])
+    )
+    agendamento = cur.fetchone()
+
+    if not agendamento:
         conn.close()
         flash("Agendamento inválido.", "danger")
         return redirect(url_for("user.visao_paciente"))
+
+    if not novo_dia or not nova_hora:
+        conn.close()
+        flash("Informe novo dia e horário.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], novo_dia)
+    if not (novo_dia == agendamento["data"] and nova_hora == agendamento["hora"]):
+        if nova_hora not in livres:
+            conn.close()
+            flash("Horário indisponível. Escolha outra opção.", "danger")
+            return redirect(url_for("user.visao_paciente"))
 
     cur.execute("""
         INSERT INTO agendamento_ajustes (agendamento_id, novo_dia, nova_hora, motivo, status, criado_em)
@@ -354,6 +372,34 @@ def horarios_api():
     sala_id   = int(request.args.get("sala_id"))
     dia       = request.args.get("dia")  # YYYY-MM-DD
     return jsonify(horarios_disponiveis(medico_id, sala_id, dia))
+
+
+@user_bp.route("/paciente/horarios_disponiveis", endpoint="paciente_horarios_api")
+@login_required(role='paciente')
+def paciente_horarios_api():
+    try:
+        agendamento_id = int(request.args.get("agendamento_id", "0"))
+    except ValueError:
+        return jsonify({"ok": False, "msg": "Agendamento inválido."}), 400
+
+    dia = (request.args.get("dia") or "").strip()
+    if not dia:
+        return jsonify({"ok": False, "msg": "Informe o dia."}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT medico_id, sala_id, data, hora FROM agendamentos WHERE id=? AND paciente_id=?",
+        (agendamento_id, session["usuario_id"])
+    )
+    agendamento = cur.fetchone()
+    conn.close()
+
+    if not agendamento:
+        return jsonify({"ok": False, "msg": "Agendamento não encontrado."}), 404
+
+    livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], dia)
+    return jsonify(livres)
 
 
 # ------------------ Recepção: criar usuários ------------------
