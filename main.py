@@ -16,4 +16,4 @@ def telaInicial():
 main.register_blueprint(user_bp, url_prefix='/user')
 
 if __name__ == '__main__':
-    main.run(debug=True)
+    main.run(host='0.0.0.0', port=5000, debug=True)
