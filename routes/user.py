@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 import re
-=======
-<<<<<<< HEAD
-# -*- coding: utf-8 -*-
-=======
->>>>>>> 013b26ac5c3ef1d528760cc5f89c1655a11a881b
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
 import sqlite3
 
 from flask import (
@@ -27,7 +20,6 @@ STATUS_AGENDAMENTO = [
     ("concluido", "Concluído"),
     ("cancelado", "Cancelado"),
 ]
-<<<<<<< HEAD
 STATUS_LABELS = {valor: rotulo for valor, rotulo in STATUS_AGENDAMENTO}
 CONFLICT_TOKENS = ("<<<<<<<", "=======", ">>>>>>>")
 
@@ -118,8 +110,6 @@ def _formatar_data_display(valor):
         return datetime.strptime(valor, "%Y-%m-%d").strftime("%d/%m/%Y")
     except ValueError:
         return valor
-=======
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
 
 # NOME DO BLUEPRINT *deve* ser "user" para os endpoints ficarem "user.*"
 user_bp = Blueprint('user', __name__, template_folder='templates')
@@ -345,18 +335,7 @@ def procedimentos():
     cur.execute(
         """
         SELECT a.id, a.data, a.hora, a.status,
-<<<<<<< HEAD
                a.medico_id, a.sala_id, a.procedimento_id,
-=======
-<<<<<<< HEAD
-               a.medico_id, a.sala_id, a.procedimento_id,
-=======
-<<<<<<< HEAD
-               a.medico_id, a.sala_id, a.procedimento_id,
-=======
->>>>>>> 09d87c69ecc2fa598784ebec661e8be34cb565c3
->>>>>>> 013b26ac5c3ef1d528760cc5f89c1655a11a881b
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
                pac.nome AS paciente, med.nome AS medico,
                pr.nome AS procedimento, s.nome AS sala
         FROM agendamentos a
@@ -367,7 +346,6 @@ def procedimentos():
         ORDER BY a.data, a.hora
         """
     )
-<<<<<<< HEAD
     agendamentos_brutos = cur.fetchall()
 
     colunas_agendamento = agendamentos_brutos[0].keys() if agendamentos_brutos else []
@@ -418,9 +396,6 @@ def procedimentos():
                 atualizacoes,
             )
         conn.commit()
-=======
-    agendamentos = cur.fetchall()
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
 
     conn.close()
 
@@ -550,28 +525,12 @@ def atualizar_agendamento(agendamento_id):
             return redirect(url_for("user.procedimentos"))
 
         if nova_data != atual["data"] or nova_hora != atual["hora"]:
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 013b26ac5c3ef1d528760cc5f89c1655a11a881b
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
             livres = horarios_disponiveis(
                 atual["medico_id"],
                 atual["sala_id"],
                 nova_data,
                 ignorar_agendamento_id=agendamento_id,
             )
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-=======
-            livres = horarios_disponiveis(atual["medico_id"], atual["sala_id"], nova_data)
->>>>>>> 09d87c69ecc2fa598784ebec661e8be34cb565c3
->>>>>>> 013b26ac5c3ef1d528760cc5f89c1655a11a881b
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
             if nova_hora not in livres:
                 conn.close()
                 flash("Horário indisponível para este médico ou sala.", "danger")
@@ -801,40 +760,6 @@ def paciente_horarios_api():
 
     livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], dia)
     return jsonify(livres)
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-
-
-@user_bp.route("/paciente/horarios_disponiveis", endpoint="paciente_horarios_api")
-@login_required(role='paciente')
-def paciente_horarios_api():
-    try:
-        agendamento_id = int(request.args.get("agendamento_id", "0"))
-    except ValueError:
-        return jsonify({"ok": False, "msg": "Agendamento inválido."}), 400
-
-    dia = (request.args.get("dia") or "").strip()
-    if not dia:
-        return jsonify({"ok": False, "msg": "Informe o dia."}), 400
-
-    conn = conectar()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT medico_id, sala_id, data, hora FROM agendamentos WHERE id=? AND paciente_id=?",
-        (agendamento_id, session["usuario_id"])
-    )
-    agendamento = cur.fetchone()
-    conn.close()
-
-    if not agendamento:
-        return jsonify({"ok": False, "msg": "Agendamento não encontrado."}), 404
-
-    livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], dia)
-    return jsonify(livres)
->>>>>>> 013b26ac5c3ef1d528760cc5f89c1655a11a881b
->>>>>>> aad6502056a33dc6cedc27dc4386fd96bb4ce1b3
 
 
 # ------------------ Recepção: criar usuários ------------------
