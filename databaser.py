@@ -62,6 +62,8 @@ def criar_tabelas():
     cols = [row[1] for row in cur.fetchall()]
     if 'status' not in cols:
         cur.execute("ALTER TABLE agendamentos ADD COLUMN status TEXT NOT NULL DEFAULT 'agendado'")
+    if 'convenio' not in cols:
+        cur.execute("ALTER TABLE agendamentos ADD COLUMN convenio TEXT")
 
     # --- solicitações de ajuste de agendamento ---
     cur.execute('''

@@ -31,6 +31,205 @@
     </div>
   </div>
 
+  {% if dashboard_totais %}
+    <div class="row g-4 mt-1">
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow-soft p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge bg-primary-subtle text-primary">Hoje</span>
+            <i class="bi bi-calendar3 text-primary" style="font-size: 1.5rem;"></i>
+          </div>
+          <h5 class="fw-semibold mb-1">Agendamentos do dia</h5>
+          <p class="display-6 fw-bold text-primary mb-0">{{ dashboard_totais.agendados_hoje or 0 }}</p>
+          <small class="muted">Total de consultas previstas para hoje.</small>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow-soft p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge bg-success-subtle text-success">Realizadas</span>
+            <i class="bi bi-clipboard2-check text-success" style="font-size: 1.5rem;"></i>
+          </div>
+          <h5 class="fw-semibold mb-1">Consultas concluídas</h5>
+          <p class="display-6 fw-bold text-success mb-0">{{ dashboard_totais.realizados_hoje or 0 }}</p>
+          <small class="muted">Consultas marcadas como concluídas hoje.</small>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow-soft p-4 h-100">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge bg-danger-subtle text-danger">Cancelamentos</span>
+            <i class="bi bi-x-octagon text-danger" style="font-size: 1.5rem;"></i>
+          </div>
+          <h5 class="fw-semibold mb-1">Consultas canceladas</h5>
+          <p class="display-6 fw-bold text-danger mb-0">{{ dashboard_totais.cancelados_hoje or 0 }}</p>
+          <small class="muted">Cancelamentos registrados para hoje.</small>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card shadow-soft p-4 p-md-5 mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h4 class="fw-semibold mb-1">Consultas realizadas por médico</h4>
+        <p class="muted mb-0">Total de consultas concluídas agrupadas por profissional.</p>
+      </div>
+    </div>
+    {% if consultas_por_medico %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Médico</th>
+              <th scope="col" class="text-end">Consultas concluídas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in consultas_por_medico %}
+              <tr>
+                <td>{{ linha.medico }}</td>
+                <td class="text-end fw-semibold">{{ linha.total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0">
+        Ainda não há consultas concluídas para exibir.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card shadow-soft p-4 p-md-5 mt-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+      <div>
+        <h4 class="fw-semibold mb-1">Relatórios de agendamentos</h4>
+        <p class="muted mb-0">Filtre por período, médico, paciente, procedimento ou convênio para gerar relatórios.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-outline-secondary btn-sm">Limpar filtros</a>
+      </div>
+    </div>
+
+    <form method="get" class="row g-3 mb-4">
+      <div class="col-md-4">
+        <label class="form-label small text-uppercase text-muted">Data inicial</label>
+        <input type="date" name="inicio" value="{{ filtros.inicio }}" class="form-control border-0 shadow-sm">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-uppercase text-muted">Data final</label>
+        <input type="date" name="fim" value="{{ filtros.fim }}" class="form-control border-0 shadow-sm">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-uppercase text-muted">Mês</label>
+        <input type="month" name="mes" value="{{ filtros.mes }}" class="form-control border-0 shadow-sm">
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <label class="form-label small text-uppercase text-muted">Médico</label>
+        <select name="medico" class="form-select border-0 shadow-sm">
+          <option value="">Todos</option>
+          {% for medico in medicos %}
+            <option value="{{ medico.id }}" {% if filtros.medico == medico.id|string %}selected{% endif %}>{{ medico.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <label class="form-label small text-uppercase text-muted">Paciente</label>
+        <select name="paciente" class="form-select border-0 shadow-sm">
+          <option value="">Todos</option>
+          {% for paciente in pacientes %}
+            <option value="{{ paciente.id }}" {% if filtros.paciente == paciente.id|string %}selected{% endif %}>{{ paciente.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <label class="form-label small text-uppercase text-muted">Procedimento</label>
+        <select name="procedimento" class="form-select border-0 shadow-sm">
+          <option value="">Todos</option>
+          {% for procedimento in procedimentos %}
+            <option value="{{ procedimento.id }}" {% if filtros.procedimento == procedimento.id|string %}selected{% endif %}>{{ procedimento.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <label class="form-label small text-uppercase text-muted">Convênio</label>
+        <input list="lista_convenios" name="convenio" value="{{ filtros.convenio }}" class="form-control border-0 shadow-sm" placeholder="Digite ou selecione">
+        <datalist id="lista_convenios">
+          {% for convenio in convenios %}
+            <option value="{{ convenio }}"></option>
+          {% endfor %}
+        </datalist>
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Aplicar filtros</button>
+      </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="bg-primary-subtle text-primary rounded-3 p-3">
+          <p class="mb-1 small text-uppercase fw-semibold">Total</p>
+          <p class="h4 fw-bold mb-0">{{ totais_filtrados.total }}</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-success-subtle text-success rounded-3 p-3">
+          <p class="mb-1 small text-uppercase fw-semibold">Realizados</p>
+          <p class="h4 fw-bold mb-0">{{ totais_filtrados.realizados }}</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-danger-subtle text-danger rounded-3 p-3">
+          <p class="mb-1 small text-uppercase fw-semibold">Cancelados</p>
+          <p class="h4 fw-bold mb-0">{{ totais_filtrados.cancelados }}</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-warning-subtle text-warning-emphasis rounded-3 p-3">
+          <p class="mb-1 small text-uppercase fw-semibold">Outros status</p>
+          <p class="h4 fw-bold mb-0">{{ totais_filtrados.agendados }}</p>
+        </div>
+      </div>
+    </div>
+
+    {% if agendamentos_filtrados %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Data</th>
+              <th scope="col">Hora</th>
+              <th scope="col">Paciente</th>
+              <th scope="col">Médico</th>
+              <th scope="col">Procedimento</th>
+              <th scope="col">Convênio</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in agendamentos_filtrados %}
+              <tr>
+                <td>{{ item.data_display or item.data }}</td>
+                <td>{{ item.hora }}</td>
+                <td>{{ item.paciente }}</td>
+                <td>{{ item.medico }}</td>
+                <td>{{ item.procedimento }}</td>
+                <td>{{ item.convenio }}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ item.status_label }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0">
+        Nenhum agendamento encontrado para os filtros aplicados.
+      </div>
+    {% endif %}
+  </div>
+
   <div class="row g-4 mt-1">
     <div class="col-md-6 col-lg-3">
       <div class="card text-center p-4 h-100">
