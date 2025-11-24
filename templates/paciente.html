@@ -3,14 +3,17 @@
 {% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
 
 {% block content %}
-<div class="container-lg py-4 py-md-5">
-  <div class="text-center mb-4">
+<div class="container-lg py-3 py-md-4">
+  <div class="text-center mb-3 position-relative">
     <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Paciente</span>
     <h2 class="page-title mt-3 mb-1">Minhas consultas</h2>
     <p class="muted mb-0">Visualize seus agendamentos e solicite ajustes quando necessário.</p>
+    <button class="btn btn-link position-absolute top-0 end-0 text-primary" data-bs-toggle="modal" data-bs-target="#ajudaPaciente" aria-label="Ajuda">
+      <i class="bi bi-question-circle-fill fs-4"></i>
+    </button>
   </div>
 
-  <div class="card p-4 p-md-5 mb-4">
+  <div class="card p-4 p-md-4 mb-3">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h5 class="fw-semibold mb-0">Meu perfil</h5>
       <span class="badge rounded-pill bg-primary-subtle text-primary">Atualize seus dados</span>
@@ -38,7 +41,18 @@
     </form>
   </div>
 
-  <div class="card p-4 p-md-5 mb-4">
+  <div class="card p-4 p-md-4 mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <h5 class="fw-semibold mb-1">Agendar consulta</h5>
+        <p class="muted mb-0">Escolha médico, sala e horário disponível (intervalos de 30 minutos).</p>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgendar"><i class="bi bi-calendar-plus me-1"></i> Nova consulta</button>
+    </div>
+    <div class="alert alert-light border border-dashed mb-0">Horários exibidos consideram todas as agendas em tempo real. Itens ocupados não aparecem.</div>
+  </div>
+
+  <div class="card p-4 p-md-4 mb-3">
     {% if agendamentos %}
       <div class="table-responsive rounded-4 border border-light-subtle">
         <table class="table align-middle mb-0">
@@ -82,7 +96,7 @@
     {% endif %}
   </div>
 
-  <div class="card p-4 p-md-5">
+  <div class="card p-4 p-md-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h5 class="fw-semibold mb-0">Minhas solicitações</h5>
       <span class="badge rounded-pill bg-primary-subtle text-primary">{{ ajustes|length }} registro(s)</span>
@@ -154,6 +168,92 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal agendar -->
+  <div class="modal fade" id="modalAgendar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" method="POST" action="{{ url_for('user.agendar_consulta_paciente') }}">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
+          <h5 class="modal-title text-white">Agendar nova consulta</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Médico</label>
+              <select name="medico_id" class="form-select border-0 shadow-sm" required>
+                <option value="">Selecione</option>
+                {% for medico in medicos %}
+                  <option value="{{ medico.id }}">{{ medico.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Procedimento</label>
+              <select name="procedimento_id" class="form-select border-0 shadow-sm" required>
+                <option value="">Selecione</option>
+                {% for proc in procedimentos %}
+                  <option value="{{ proc.id }}">{{ proc.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Sala</label>
+              <select name="sala_id" class="form-select border-0 shadow-sm" required>
+                <option value="">Selecione</option>
+                {% for sala in salas %}
+                  <option value="{{ sala.id }}">{{ sala.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Convênio</label>
+              <input list="listaConveniosPaciente" name="convenio" class="form-control border-0 shadow-sm" placeholder="Convênio ou particular">
+              <datalist id="listaConveniosPaciente">
+                {% for convenio in convenios %}
+                  <option value="{{ convenio }}"></option>
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Data</label>
+              <input type="date" name="data" class="form-control border-0 shadow-sm" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-uppercase text-muted">Horário</label>
+              <select name="hora" class="form-select border-0 shadow-sm" required>
+                <option value="">Selecione médico, sala e data</option>
+              </select>
+            </div>
+          </div>
+          <small class="text-muted d-block mt-3">Apenas horários livres são exibidos, em blocos de 30 minutos.</small>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary w-100"><i class="bi bi-calendar-check"></i> Confirmar agendamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ajuda -->
+  <div class="modal fade" id="ajudaPaciente" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title">Dúvidas frequentes</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="list-unstyled mb-0 small">
+            <li class="mb-2"><strong>Como agendar:</strong> clique em "Nova consulta", escolha médico, sala e a data. Apenas horários livres aparecerão.</li>
+            <li class="mb-2"><strong>Não consigo marcar:</strong> verifique se todos os campos foram preenchidos e se há salas disponíveis para o médico.</li>
+            <li class="mb-2"><strong>Horário cheio:</strong> tente outra data ou médico; os horários ocupados não são exibidos.</li>
+            <li><strong>Não consigo acessar:</strong> saia da conta e faça login novamente; se persistir, contate a recepção.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -240,6 +340,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   diaInput.addEventListener('change', carregarHorarios);
+
+  // agendar modal
+  const agendarModal = document.getElementById('modalAgendar');
+  if (agendarModal) {
+    const formAgendar = agendarModal.querySelector('form');
+    const selects = formAgendar.querySelectorAll('select[name="medico_id"], select[name="sala_id"], input[name="data"]');
+    const horaSelect = formAgendar.querySelector('select[name="hora"]');
+
+    const atualizarHorariosNovo = async () => {
+      const medico = formAgendar.querySelector('select[name="medico_id"]').value;
+      const sala = formAgendar.querySelector('select[name="sala_id"]').value;
+      const dia = formAgendar.querySelector('input[name="data"]').value;
+      if (!(medico && sala && dia)) {
+        horaSelect.innerHTML = '<option value="">Selecione médico, sala e data</option>';
+        horaSelect.disabled = true;
+        return;
+      }
+      horaSelect.innerHTML = '<option value="">Carregando horários livres...</option>';
+      horaSelect.disabled = true;
+      try {
+        const res = await fetch(`/user/paciente/horarios_novo?medico_id=${medico}&sala_id=${sala}&dia=${dia}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          horaSelect.innerHTML = data.map(h => `<option value="${h}">${h}</option>`).join('');
+          horaSelect.disabled = false;
+        } else {
+          horaSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
+        }
+      } catch (err) {
+        horaSelect.innerHTML = '<option value="">Erro ao buscar horários</option>';
+      }
+    };
+
+    selects.forEach(el => el.addEventListener('change', atualizarHorariosNovo));
+    agendarModal.addEventListener('shown.bs.modal', () => {
+      atualizarHorariosNovo();
+    });
+  }
 
   const statusBadges = document.querySelectorAll('[data-status-badge]');
   statusBadges.forEach(badge => {

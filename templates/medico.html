@@ -3,16 +3,19 @@
 {% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
 
 {% block content %}
-<div class="container-lg py-4 py-md-5">
-  <div class="text-center mb-4">
+<div class="container-lg py-3 py-md-4">
+  <div class="text-center mb-3 position-relative">
     <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Consultório</span>
     <h2 class="page-title mt-3 mb-1">Agenda do dia</h2>
     <p class="muted mb-0">Visualize os atendimentos de {{ data_hoje or 'hoje' }}, registre observações clínicas e avise a recepção quando o paciente puder entrar.</p>
+    <button class="btn btn-link position-absolute top-0 end-0 text-primary" data-bs-toggle="modal" data-bs-target="#ajudaMedico" aria-label="Ajuda">
+      <i class="bi bi-question-circle-fill fs-4"></i>
+    </button>
   </div>
 
   <div class="row g-4">
     <div class="col-lg-8">
-      <div class="card shadow-soft p-4 p-md-5 h-100">
+      <div class="card shadow-soft p-4 p-md-4 h-100">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
           <div>
             <h4 class="fw-semibold mb-1">Consultas agendadas</h4>
@@ -87,7 +90,7 @@
     </div>
 
     <div class="col-lg-4">
-      <div class="card shadow-soft p-4 p-md-5 h-100">
+      <div class="card shadow-soft p-4 p-md-4 h-100">
         <h5 class="fw-semibold mb-4">Resumo do profissional</h5>
         <div class="vstack gap-3">
           <div class="bg-primary-subtle text-primary rounded-4 p-3">
@@ -116,6 +119,26 @@
           <h6 class="fw-semibold">Dica rápida</h6>
           <p class="muted small mb-2">Mantenha o status das consultas atualizado para que a recepção tenha visibilidade em tempo real.</p>
           <p class="muted small mb-0">Use o botão "Chamar paciente" para avisar a equipe assim que puder receber o próximo atendimento.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ajuda -->
+  <div class="modal fade" id="ajudaMedico" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title">Como usar o painel</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="list-unstyled mb-0 small">
+            <li class="mb-2"><strong>Como registrar notas:</strong> escreva na área de "Notas clínicas" e clique em salvar.</li>
+            <li class="mb-2"><strong>Chamar paciente:</strong> use o botão "Chamar paciente" para notificar a recepção; você verá o status da chamada.</li>
+            <li class="mb-2"><strong>Consultas do dia:</strong> os horários exibidos já consideram apenas seus agendamentos do dia atual.</li>
+            <li><strong>Dificuldades de acesso:</strong> saia e entre novamente; se persistir, comunique a recepção.</li>
+          </ul>
         </div>
       </div>
     </div>

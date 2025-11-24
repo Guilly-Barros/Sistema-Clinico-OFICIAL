@@ -2,14 +2,17 @@
 {% block title %}Painel da Recepcionista — Clínica Vida+{% endblock %}
 {% block nav_actions %}<a href="{{ url_for('user.user') }}" class="btn btn-light btn-sm">Sair</a>{% endblock %}
 {% block content %}
-<div class="container-lg py-4 py-md-5">
-  <div class="text-center mb-4">
+<div class="container-lg py-3 py-md-4">
+  <div class="text-center mb-3 position-relative">
     <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
     <h2 class="page-title mt-3 mb-1">Painel da recepcionista</h2>
     <p class="muted mb-0">Centralize cadastros, acompanhe solicitações e mantenha a agenda sob controle.</p>
+    <button class="btn btn-link position-absolute top-0 end-0 text-primary" data-bs-toggle="modal" data-bs-target="#ajudaRecep" aria-label="Ajuda">
+      <i class="bi bi-question-circle-fill fs-4"></i>
+    </button>
   </div>
 
-  <div class="card p-4 p-md-5 mb-4">
+  <div class="card p-4 p-md-4 mb-3">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
       {% if pendentes and pendentes|int > 0 %}
         <div class="d-flex align-items-center gap-3">
@@ -31,7 +34,7 @@
     </div>
   </div>
 
-  <div class="card shadow-soft p-4 p-md-5 mb-4">
+  <div class="card shadow-soft p-4 p-md-4 mb-3">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
       <div>
         <h4 class="fw-semibold mb-1">Chamadas de pacientes</h4>
@@ -75,7 +78,7 @@
   </div>
 
   {% if dashboard_totais %}
-    <div class="row g-4 mt-1">
+    <div class="row g-3 mt-1">
       <div class="col-md-6 col-lg-4">
         <div class="card shadow-soft p-4 h-100">
           <div class="d-flex align-items-center justify-content-between mb-2">
@@ -112,7 +115,7 @@
     </div>
   {% endif %}
 
-  <div class="card shadow-soft p-4 p-md-5 mt-4">
+  <div class="card shadow-soft p-4 p-md-4 mt-3">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
       <div>
         <h4 class="fw-semibold mb-1">Consultas realizadas por médico</h4>
@@ -145,13 +148,16 @@
     {% endif %}
   </div>
 
-  <div class="card shadow-soft p-4 p-md-5 mt-4">
+  <div class="card shadow-soft p-4 p-md-4 mt-3">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
       <div>
         <h4 class="fw-semibold mb-1">Relatórios de agendamentos</h4>
         <p class="muted mb-0">Filtre por período, médico, paciente, procedimento ou convênio para gerar relatórios.</p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('user.exportar_relatorio', escopo='mensal', **filtros) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i> Exportar mensal</a>
+        <a href="{{ url_for('user.exportar_relatorio', escopo='semanal', **filtros) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar-week me-1"></i> Exportar semanal</a>
+        <a href="{{ url_for('user.exportar_relatorio', escopo='diario', **filtros) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar-day me-1"></i> Exportar diário</a>
         <a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-outline-secondary btn-sm">Limpar filtros</a>
       </div>
     </div>
@@ -273,7 +279,7 @@
     {% endif %}
   </div>
 
-  <div class="row g-4 mt-1">
+  <div class="row g-3 mt-1">
     <div class="col-md-6 col-lg-3">
       <div class="card text-center p-4 h-100">
         <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-3">
@@ -329,4 +335,22 @@
     circle.querySelector('i').style.fontSize = '1.5rem';
   });
 </script>
+<div class="modal fade" id="ajudaRecep" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title">Guia rápido da recepção</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-unstyled mb-0 small">
+          <li class="mb-2"><strong>Como agendar:</strong> utilize o menu de agendamentos ou filtre por médico e sala antes de escolher o horário.</li>
+          <li class="mb-2"><strong>Horário cheio:</strong> se um horário não aparece, já está ocupado para o médico ou sala.</li>
+          <li class="mb-2"><strong>Exportar relatórios:</strong> use os botões Diário, Semanal ou Mensal para baixar CSV com os filtros atuais.</li>
+          <li><strong>Problemas de acesso:</strong> refaça o login e confirme com TI se o usuário possui perfil correto.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
