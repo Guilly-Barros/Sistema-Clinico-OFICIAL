@@ -9,7 +9,7 @@ from flask import (
 )
 from functools import wraps
 from datetime import datetime, date
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from databaser import (
     conectar, criar_tabelas, horarios_disponiveis
@@ -193,7 +193,6 @@ def register():
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
 
-        from werkzeug.security import generate_password_hash
         senha_hash = generate_password_hash(senha)
 
         conn = conectar()
@@ -990,8 +989,57 @@ def visao_paciente():
     """, (pid,))
     ajustes = cur.fetchall()
 
+    cur.execute("SELECT nome, email FROM usuarios WHERE id=?", (pid,))
+    perfil_row = cur.fetchone()
+    perfil = {"nome": perfil_row["nome"], "email": perfil_row["email"]} if perfil_row else {"nome": "", "email": ""}
+
     conn.close()
-    return render_template("paciente.html", agendamentos=ags, ajustes=ajustes)
+    return render_template("paciente.html", agendamentos=ags, ajustes=ajustes, perfil=perfil)
+
+
+@user_bp.route("/paciente/perfil", methods=["POST"], endpoint="atualizar_perfil_paciente")
+@login_required(role='paciente')
+def atualizar_perfil_paciente():
+    usuario_id = session["usuario_id"]
+    nome = (request.form.get("nome") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    senha = request.form.get("senha") or ""
+    confirmar = request.form.get("confirmar_senha") or ""
+
+    if not nome or not email:
+        flash("Informe nome e e-mail para atualizar seu perfil.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    if senha and senha != confirmar:
+        flash("A confirmação de senha não confere.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    try:
+        if senha:
+            senha_hash = generate_password_hash(senha)
+            cur.execute(
+                "UPDATE usuarios SET nome=?, email=?, senha=? WHERE id=?",
+                (nome, email, senha_hash, usuario_id),
+            )
+        else:
+            cur.execute(
+                "UPDATE usuarios SET nome=?, email=? WHERE id=?",
+                (nome, email, usuario_id),
+            )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        conn.close()
+        flash("Este e-mail já está cadastrado para outro usuário.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    conn.close()
+    session["usuario_nome"] = nome
+    flash("Perfil atualizado com sucesso!", "success")
+    return redirect(url_for("user.visao_paciente"))
 
 
 # ------------------ Paciente: solicitar ajuste ------------------
@@ -1173,7 +1221,6 @@ def cadastrar_usuarios():
         senha = request.form.get("senha", "")
         tipo_usuario = request.form.get("tipo_usuario", "").lower()
 
-        from werkzeug.security import generate_password_hash
         senha_hash = generate_password_hash(senha)
 
         conn = conectar()
@@ -1189,3 +1236,84 @@ def cadastrar_usuarios():
         return redirect(url_for("user.visao_recepcionista"))
 
     return render_template("cadastrarUsuarios.html")
+
+
+@user_bp.route("/recepcionista/usuarios", endpoint="gerenciar_usuarios")
+@login_required(role='recepcionista')
+def gerenciar_usuarios():
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nome, email FROM usuarios WHERE LOWER(tipo_usuario)='paciente' ORDER BY nome")
+    pacientes = cur.fetchall()
+    cur.execute(
+        "SELECT id, nome, email FROM usuarios WHERE LOWER(REPLACE(tipo_usuario, 'é', 'e'))='medico' ORDER BY nome"
+    )
+    medicos = cur.fetchall()
+    conn.close()
+    return render_template("gerenciar_usuarios.html", pacientes=pacientes, medicos=medicos)
+
+
+@user_bp.route("/recepcionista/usuarios/<int:usuario_id>/editar", methods=["GET", "POST"], endpoint="editar_usuario")
+@login_required(role='recepcionista')
+def editar_usuario(usuario_id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, nome, email, tipo_usuario FROM usuarios WHERE id=?",
+        (usuario_id,),
+    )
+    usuario = cur.fetchone()
+
+    if not usuario:
+        conn.close()
+        flash("Usuário não encontrado ou tipo não permitido para edição.", "danger")
+        return redirect(url_for("user.gerenciar_usuarios"))
+
+    tipo_usuario = (usuario["tipo_usuario"] or "").lower()
+    tipo_normalizado = tipo_usuario.replace("é", "e")
+    if tipo_normalizado not in {"paciente", "medico"}:
+        conn.close()
+        flash("Usuário não encontrado ou tipo não permitido para edição.", "danger")
+        return redirect(url_for("user.gerenciar_usuarios"))
+
+    if request.method == "POST":
+        nome = (request.form.get("nome") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        senha = request.form.get("senha") or ""
+        confirmar = request.form.get("confirmar_senha") or ""
+
+        if not nome or not email:
+            conn.close()
+            flash("Informe nome e e-mail para atualizar o cadastro.", "danger")
+            return redirect(url_for("user.editar_usuario", usuario_id=usuario_id))
+
+        if senha and senha != confirmar:
+            conn.close()
+            flash("A confirmação de senha não confere.", "danger")
+            return redirect(url_for("user.editar_usuario", usuario_id=usuario_id))
+
+        try:
+            if senha:
+                senha_hash = generate_password_hash(senha)
+                cur.execute(
+                    "UPDATE usuarios SET nome=?, email=?, senha=? WHERE id=?",
+                    (nome, email, senha_hash, usuario_id),
+                )
+            else:
+                cur.execute(
+                    "UPDATE usuarios SET nome=?, email=? WHERE id=?",
+                    (nome, email, usuario_id),
+                )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            conn.close()
+            flash("Este e-mail já está cadastrado para outro usuário.", "danger")
+            return redirect(url_for("user.editar_usuario", usuario_id=usuario_id))
+
+        conn.close()
+        flash("Cadastro atualizado com sucesso!", "success")
+        return redirect(url_for("user.gerenciar_usuarios"))
+
+    conn.close()
+    return render_template("editar_usuario.html", usuario=usuario)

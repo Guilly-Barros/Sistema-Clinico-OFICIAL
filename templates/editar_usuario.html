@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuário — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+<a href="{{ url_for('user.gerenciar_usuarios') }}" class="btn btn-light btn-sm">Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-xl-5 col-lg-6">
+      <div class="card p-4 p-md-5">
+        <div class="text-center mb-4">
+          <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
+          <h2 class="fw-bold mt-2">Editar cadastro</h2>
+          <p class="muted mb-0">Atualize informações do {{ usuario.tipo_usuario }} selecionado.</p>
+        </div>
+
+        <form method="post" class="vstack gap-3">
+          <div>
+            <label class="form-label small text-uppercase text-muted">Nome completo</label>
+            <input type="text" name="nome" value="{{ usuario.nome }}" class="form-control border-0 shadow-sm" required>
+          </div>
+          <div>
+            <label class="form-label small text-uppercase text-muted">E-mail</label>
+            <input type="email" name="email" value="{{ usuario.email }}" class="form-control border-0 shadow-sm" required>
+          </div>
+          <div>
+            <label class="form-label small text-uppercase text-muted">Nova senha <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="password" name="senha" class="form-control border-0 shadow-sm" placeholder="Informe apenas se desejar alterar">
+          </div>
+          <div>
+            <label class="form-label small text-uppercase text-muted">Confirmar nova senha</label>
+            <input type="password" name="confirmar_senha" class="form-control border-0 shadow-sm" placeholder="Repita a nova senha">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-save me-1"></i> Salvar alterações
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

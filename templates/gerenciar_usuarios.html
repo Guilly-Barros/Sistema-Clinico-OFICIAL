@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Gerenciar Usuários — Clínica Vida+{% endblock %}
+{% block nav_actions %}
+<a href="{{ url_for('user.visao_recepcionista') }}" class="btn btn-light btn-sm">Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4 py-md-5">
+  <div class="text-center mb-5">
+    <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">Recepção</span>
+    <h2 class="page-title mt-3 mb-1">Gerenciar cadastros</h2>
+    <p class="muted mb-0">Atualize dados de pacientes e médicos já cadastrados no sistema.</p>
+  </div>
+
+  <div class="card shadow-soft p-4 p-md-5 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h4 class="fw-semibold mb-0">Pacientes</h4>
+      <span class="badge bg-primary-subtle text-primary">{{ pacientes|length }} cadastro(s)</span>
+    </div>
+    {% if pacientes %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">E-mail</th>
+              <th scope="col" class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for paciente in pacientes %}
+            <tr>
+              <td>{{ paciente.nome }}</td>
+              <td>{{ paciente.email }}</td>
+              <td class="text-end">
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('user.editar_usuario', usuario_id=paciente.id) }}">
+                  <i class="bi bi-pencil-square me-1"></i> Editar
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-light mb-0">Nenhum paciente cadastrado até o momento.</div>
+    {% endif %}
+  </div>
+
+  <div class="card shadow-soft p-4 p-md-5">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h4 class="fw-semibold mb-0">Médicos</h4>
+      <span class="badge bg-primary-subtle text-primary">{{ medicos|length }} cadastro(s)</span>
+    </div>
+    {% if medicos %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">E-mail</th>
+              <th scope="col" class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for medico in medicos %}
+            <tr>
+              <td>{{ medico.nome }}</td>
+              <td>{{ medico.email }}</td>
+              <td class="text-end">
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('user.editar_usuario', usuario_id=medico.id) }}">
+                  <i class="bi bi-pencil-square me-1"></i> Editar
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-light mb-0">Nenhum médico cadastrado até o momento.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
