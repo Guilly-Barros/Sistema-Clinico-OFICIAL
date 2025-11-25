@@ -1,0 +1,4 @@
+flask
+flask werkzeug
+flask_sqlalchemy
+flask_migrate
