@@ -29,19 +29,26 @@ O sistema oferece uma visão centralizada da rotina da clínica "Vida+", permiti
 
 ### Experiência do paciente
 - Cadastro e login dedicados.
-- Visualização da agenda própria com status claros de cada consulta.
+- Visualização da agenda própria com status claros de cada consulta e opção de registrar observações do atendimento.
 - Solicitação de ajustes (data e horário) apenas para horários realmente disponíveis, acompanhando o status do pedido em tempo real.
+- Agendamento direto pelo paciente, respeitando conflitos de médico e sala e permitindo informar convênio.
+- Atualização de perfil (nome, e-mail, senha) com verificação de duplicidade.
 - Acesso a resumos de procedimentos, profissionais e sala envolvidos.
 
 ### Experiência da recepção
-- Painel principal com consultas do dia, filtros por status e indicadores rápidos.
-- Tela especializada de **Procedimentos** para criar, editar e remover tipos de atendimento.
-- Controle sobre mudanças de horário, sala, profissional e status de cada agendamento.
+- Painel principal com consultas do dia, filtros por status, indicadores rápidos e acompanhamento de chamadas de pacientes.
+- Exportação de relatórios CSV diários, semanais, mensais ou personalizados, incluindo totais de realizados, cancelados e em aberto.
+- Tela especializada de **Procedimentos** para criar, editar e remover tipos de atendimento, além de atualizar status, data e hora de agendamentos.
+- Avaliação de solicitações de ajuste enviadas pelos pacientes, com validação automática de horários antes de aceitar ou negar.
+- Encaminhamento de chamadas de pacientes para consultórios, garantindo controle de fila e registro de horários.
+- Cadastro e edição de usuários (pacientes e médicos) direto pela recepção.
 - Marcação de procedimentos como agendados, em atendimento, concluídos ou cancelados com feedback imediato.
 - Offcanvas e modais organizam os formulários, evitando que o usuário perca o contexto da lista de agendamentos.
 
 ### Experiência do médico
-- Painel com consultas futuras e pendências, destacando pacientes, procedimentos e horários.
+- Painel com consultas do dia e indicadores de atendimentos concluídos e cancelados.
+- Registro de notas do atendimento e visualização do convênio informado.
+- Emissão de chamadas para pacientes diretamente da agenda, colocando o status como "em atendimento" e notificando a recepção.
 - Possibilidade de acompanhar solicitações de ajuste aprovadas pela recepção.
 
 ## Arquitetura e tecnologias
