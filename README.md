@@ -122,6 +122,10 @@ Sistema-Clinico-OFICIAL/
 4. Recepcionistas avaliam solicitações de ajuste, aceitando ou negando, e os status são propagados para todas as visões.
 5. Agendamentos acompanham status em tempo real (agendado, em atendimento, concluído, cancelado), com badges coloridas.
 
+## Endpoints auxiliares (AJAX)
+- `GET /user/api/disponibilidade?data=YYYY-MM-DD&medico_id=<id>&sala_id=<id>`: retorna listas de horários ocupados e disponíveis para a data especificada.
+- `GET /user/api/sugerir_horario?data=YYYY-MM-DD&hora=HH:MM&medico_id=<id>&sala_id=<id>`: sugere automaticamente o próximo horário livre a partir da data/hora informadas.
+
 ## Estilos e responsividade
 - Layout baseado em cartões com transparência e sombras suaves, seguindo a paleta azul indicada.
 - Componentes reutilizáveis para botões, badges e formulários garantem consistência entre páginas.

@@ -117,8 +117,12 @@
                   <div class="small text-muted">Seu motivo: {{ j['motivo'] }}</div>
                 {% endif %}
 
-                {% if j['status'] == 'negado' and j['motivo_negativa'] %}
+                {% if j['status'] in ['negado','negada'] and j['motivo_negativa'] %}
                   <div class="small text-muted">Motivo da negativa: {{ j['motivo_negativa'] }}</div>
+                {% endif %}
+
+                {% if j['data_sugerida'] and j['hora_sugerida'] %}
+                  <div class="small text-muted">Sugestão da recepção: {{ j['data_sugerida'] }} {{ j['hora_sugerida'] }}</div>
                 {% endif %}
 
                 <div class="small text-muted">Consulta atual: {{ j['data_atual'] }} {{ j['hora_atual'] }}</div>
@@ -268,6 +272,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btnEnviar');
   const diaInput = form.querySelector('input[name="novo_dia"]');
   const horaSelect = form.querySelector('select[name="nova_hora"]');
+  const todayISO = new Date().toISOString().split('T')[0];
+  diaInput.min = todayISO;
+  const modalAgendar = document.getElementById('modalAgendar');
+
+  function isPastSlot(dateStr, timeStr){
+    if(!dateStr || !timeStr) return false;
+    const dt = new Date(`${dateStr}T${timeStr}:00`);
+    return dt < new Date();
+  }
 
   modalEl.addEventListener('show.bs.modal', event => {
     const button = event.relatedTarget;
@@ -327,10 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (!Array.isArray(data) || data.length === 0) {
+      const valid = Array.isArray(data) ? data.filter(h => !isPastSlot(dia, h)) : [];
+      if (!Array.isArray(data) || valid.length === 0) {
         horaSelect.innerHTML = '<option value="">Nenhum horário livre neste dia</option>';
       } else {
-        horaSelect.innerHTML = data.map(h => `<option value="${h}">${h}</option>`).join('');
+        horaSelect.innerHTML = valid.map(h => `<option value="${h}">${h}</option>`).join('');
       }
       horaSelect.disabled = false;
     } catch (err) {
@@ -342,39 +356,41 @@ document.addEventListener('DOMContentLoaded', () => {
   diaInput.addEventListener('change', carregarHorarios);
 
   // agendar modal
-  const agendarModal = document.getElementById('modalAgendar');
-  if (agendarModal) {
-    const formAgendar = agendarModal.querySelector('form');
+  if (modalAgendar) {
+    const formAgendar = modalAgendar.querySelector('form');
     const selects = formAgendar.querySelectorAll('select[name="medico_id"], select[name="sala_id"], input[name="data"]');
-    const horaSelect = formAgendar.querySelector('select[name="hora"]');
+    const horaSelectNovo = formAgendar.querySelector('select[name="hora"]');
+    const dataInputNovo = formAgendar.querySelector('input[name="data"]');
+    dataInputNovo.min = todayISO;
 
     const atualizarHorariosNovo = async () => {
       const medico = formAgendar.querySelector('select[name="medico_id"]').value;
       const sala = formAgendar.querySelector('select[name="sala_id"]').value;
-      const dia = formAgendar.querySelector('input[name="data"]').value;
+      const dia = dataInputNovo.value;
       if (!(medico && sala && dia)) {
-        horaSelect.innerHTML = '<option value="">Selecione médico, sala e data</option>';
-        horaSelect.disabled = true;
+        horaSelectNovo.innerHTML = '<option value="">Selecione médico, sala e data</option>';
+        horaSelectNovo.disabled = true;
         return;
       }
-      horaSelect.innerHTML = '<option value="">Carregando horários livres...</option>';
-      horaSelect.disabled = true;
+      horaSelectNovo.innerHTML = '<option value="">Carregando horários livres...</option>';
+      horaSelectNovo.disabled = true;
       try {
         const res = await fetch(`/user/paciente/horarios_novo?medico_id=${medico}&sala_id=${sala}&dia=${dia}`);
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          horaSelect.innerHTML = data.map(h => `<option value="${h}">${h}</option>`).join('');
-          horaSelect.disabled = false;
+        const valid = Array.isArray(data) ? data.filter(h => !isPastSlot(dia, h)) : [];
+        if (valid.length > 0) {
+          horaSelectNovo.innerHTML = valid.map(h => `<option value="${h}">${h}</option>`).join('');
+          horaSelectNovo.disabled = false;
         } else {
-          horaSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
+          horaSelectNovo.innerHTML = '<option value="">Nenhum horário disponível</option>';
         }
       } catch (err) {
-        horaSelect.innerHTML = '<option value="">Erro ao buscar horários</option>';
+        horaSelectNovo.innerHTML = '<option value="">Erro ao buscar horários</option>';
       }
     };
 
     selects.forEach(el => el.addEventListener('change', atualizarHorariosNovo));
-    agendarModal.addEventListener('shown.bs.modal', () => {
+    modalAgendar.addEventListener('shown.bs.modal', () => {
       atualizarHorariosNovo();
     });
   }

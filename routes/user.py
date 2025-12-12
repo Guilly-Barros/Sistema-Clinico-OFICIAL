@@ -14,7 +14,8 @@ from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from databaser import (
-    conectar, criar_tabelas, horarios_disponiveis
+    conectar, criar_tabelas, horarios_disponiveis, get_busy_slots,
+    is_slot_available, sugerir_proximo_horario, auto_close_past_appointments
 )
 
 STATUS_AGENDAMENTO = [
@@ -25,6 +26,20 @@ STATUS_AGENDAMENTO = [
 ]
 STATUS_LABELS = {valor: rotulo for valor, rotulo in STATUS_AGENDAMENTO}
 CONFLICT_TOKENS = ("<<<<<<<", "=======", ">>>>>>>")
+
+
+def _parse_datetime(data_str: str, hora_str: str):
+    return datetime.strptime(f"{data_str} {hora_str}", "%Y-%m-%d %H:%M")
+
+
+def _validar_data_hora_futura(data_str: str, hora_str: str):
+    try:
+        dt_alvo = _parse_datetime(_normalizar_data(data_str), _normalizar_hora(hora_str))
+    except Exception:
+        return False, "Data ou hora inválidas."
+    if dt_alvo < datetime.now():
+        return False, "Data ou horário no passado não são permitidos."
+    return True, ""
 
 
 def _aplicar_intervalo_mes(filtros):
@@ -386,13 +401,20 @@ def agendar_consulta():
         elif "receita" in nome_lower or procedimento_raw == "__receita__":
             convenio_valor = "Receita"
 
-        # conflito sala+data+hora
-        cur.execute("SELECT 1 FROM agendamentos WHERE data=? AND hora=? AND sala_id=?", (data_, hora_, sala_id))
-        if cur.fetchone():
+        valido, msg = _validar_data_hora_futura(data_, hora_)
+        if not valido:
             if is_ajax:
                 conn.close()
-                return jsonify({"ok": False, "msg": "Já existe uma consulta para essa sala nesse horário."}), 409
-            flash("Já existe uma consulta marcada para essa sala nesse horário!", "danger")
+                return jsonify({"ok": False, "msg": msg}), 400
+            flash(msg, "danger")
+            conn.close()
+            return redirect(url_for("user.agendar_consulta"))
+
+        if not is_slot_available(data_, hora_, int(medico_id), int(sala_id)):
+            if is_ajax:
+                conn.close()
+                return jsonify({"ok": False, "msg": "Horário indisponível para este médico ou sala."}), 409
+            flash("Horário indisponível para este médico ou sala.", "danger")
             conn.close()
             return redirect(url_for("user.agendar_consulta"))
 
@@ -425,6 +447,7 @@ def agendar_consulta():
 @login_required(role='recepcionista')
 def visao_recepcionista():
     criar_tabelas()
+    auto_close_past_appointments()
     conn = conectar()
     cur = conn.cursor()
     cur.execute("SELECT COUNT(1) AS q FROM agendamento_ajustes WHERE status='pendente'")
@@ -1051,6 +1074,7 @@ def chamar_paciente(agendamento_id):
 @login_required(role='paciente')
 def visao_paciente():
     pid = session["usuario_id"]
+    auto_close_past_appointments()
     conn = conectar()
     cur = conn.cursor()
 
@@ -1164,15 +1188,18 @@ def agendar_consulta_paciente():
         flash("Preencha todos os campos para agendar.", "danger")
         return redirect(url_for("user.visao_paciente"))
 
-    try:
-        datetime.strptime(data_, "%Y-%m-%d")
-        datetime.strptime(hora_, "%H:%M")
-    except ValueError:
-        flash("Data ou horário em formato inválido.", "danger")
+    valido, msg = _validar_data_hora_futura(data_, hora_)
+    if not valido:
+        flash(msg, "danger")
         return redirect(url_for("user.visao_paciente"))
 
-    disponiveis = horarios_disponiveis(int(medico_id), int(sala_id), data_)
-    if hora_ not in disponiveis:
+    try:
+        disponiveis = horarios_disponiveis(int(medico_id), int(sala_id), data_)
+    except ValueError:
+        flash("Dados inválidos para médico ou sala.", "danger")
+        return redirect(url_for("user.visao_paciente"))
+
+    if hora_ not in disponiveis or not is_slot_available(data_, hora_, int(medico_id), int(sala_id)):
         flash("Horário indisponível para o médico ou sala escolhidos.", "danger")
         return redirect(url_for("user.visao_paciente"))
 
@@ -1228,9 +1255,15 @@ def solicitar_ajuste(agendamento_id):
         flash("Informe novo dia e horário.", "danger")
         return redirect(url_for("user.visao_paciente"))
 
+    valido, msg = _validar_data_hora_futura(novo_dia, nova_hora)
+    if not valido:
+        conn.close()
+        flash(msg, "danger")
+        return redirect(url_for("user.visao_paciente"))
+
     livres = horarios_disponiveis(agendamento["medico_id"], agendamento["sala_id"], novo_dia)
     if not (novo_dia == agendamento["data"] and nova_hora == agendamento["hora"]):
-        if nova_hora not in livres:
+        if nova_hora not in livres or not is_slot_available(novo_dia, nova_hora, agendamento["medico_id"], agendamento["sala_id"], agendamento_id):
             conn.close()
             flash("Horário indisponível. Escolha outra opção.", "danger")
             return redirect(url_for("user.visao_paciente"))
@@ -1250,6 +1283,7 @@ def solicitar_ajuste(agendamento_id):
 @user_bp.route("/recepcionista/ajustes", endpoint="lista_ajustes")
 @login_required(role='recepcionista')
 def lista_ajustes():
+    auto_close_past_appointments()
     conn = conectar()
     cur = conn.cursor()
     cur.execute("""
@@ -1288,22 +1322,54 @@ def decidir_ajuste(ajuste_id):
         return redirect(url_for("user.lista_ajustes"))
 
     if acao == "negar":
-        cur.execute("UPDATE agendamento_ajustes SET status='negado' WHERE id=?", (ajuste_id,))
+        data_sugerida = (request.form.get("data_sugerida") or "").strip()
+        hora_sugerida = (request.form.get("hora_sugerida") or "").strip()
+        now_iso = datetime.utcnow().isoformat()
+        if not (data_sugerida and hora_sugerida):
+            data_sugerida, hora_sugerida = sugerir_proximo_horario(row["novo_dia"], row["nova_hora"], row["medico_id"], row["sala_id"]) or (None, None)
+        if data_sugerida and hora_sugerida:
+            valido, msg_val = _validar_data_hora_futura(data_sugerida, hora_sugerida)
+            if not valido:
+                conn.close()
+                flash(msg_val, "danger")
+                return redirect(url_for("user.lista_ajustes"))
+        motivo_padrao = (
+            f"CONSULTA PARA A DATA ({row['novo_dia']}) no horario ({row['nova_hora']}) "
+            "NÃO TEMOS NENHUM HORARIO DISPONIVEL, SEGUE DATA E HORARIO PARA NOVA CONSULTA."
+        )
+        cur.execute(
+            """UPDATE agendamento_ajustes
+                   SET status='negada', motivo_negativa=?, data_sugerida=?, hora_sugerida=?, updated_at=?
+                 WHERE id=?""",
+            (motivo_padrao, data_sugerida, hora_sugerida, now_iso, ajuste_id),
+        )
+        cur.execute(
+            """UPDATE agendamentos
+                   SET status='negado', motivo_negacao=?, data_sugerida=?, hora_sugerida=?, updated_at=?
+                 WHERE id=?""",
+            (motivo_padrao, data_sugerida, hora_sugerida, now_iso, row["agendamento_id"]),
+        )
         conn.commit()
         conn.close()
-        flash("Solicitação negada.", "warning")
+        flash("Solicitação negada e paciente receberá um novo horário sugerido.", "warning")
         return redirect(url_for("user.lista_ajustes"))
 
-    # aceitar -> checa disponibilidade
+    valido, msg_val = _validar_data_hora_futura(row["novo_dia"], row["nova_hora"])
+    if not valido:
+        conn.close()
+        flash(msg_val, "danger")
+        return redirect(url_for("user.lista_ajustes"))
+
     livres = horarios_disponiveis(row["medico_id"], row["sala_id"], row["novo_dia"])
-    if row["nova_hora"] not in livres:
+    if row["nova_hora"] not in livres or not is_slot_available(row["novo_dia"], row["nova_hora"], row["medico_id"], row["sala_id"], row["agendamento_id"]):
         conn.close()
         flash("Horário indisponível. Escolha outro horário.", "danger")
         return redirect(url_for("user.lista_ajustes"))
 
     # aplica ajuste
-    cur.execute("UPDATE agendamentos SET data=?, hora=? WHERE id=?", (row["novo_dia"], row["nova_hora"], row["agendamento_id"]))
-    cur.execute("UPDATE agendamento_ajustes SET status='aceito' WHERE id=?", (ajuste_id,))
+    now_iso = datetime.utcnow().isoformat()
+    cur.execute("UPDATE agendamentos SET data=?, hora=?, updated_at=? WHERE id=?", (row["novo_dia"], row["nova_hora"], now_iso, row["agendamento_id"]))
+    cur.execute("UPDATE agendamento_ajustes SET status='aceito', updated_at=? WHERE id=?", (now_iso, ajuste_id))
     conn.commit()
     conn.close()
     flash("Solicitação aceita e agendamento atualizado.", "success")
@@ -1338,6 +1404,51 @@ def horarios_api():
             ignorar_agendamento_id=ignorar_id_int,
         )
     )
+
+
+@user_bp.route("/api/disponibilidade", methods=["GET"], endpoint="api_disponibilidade")
+@login_required()
+def api_disponibilidade():
+    data = (request.args.get("data") or "").strip()
+    medico_raw = request.args.get("medico_id")
+    sala_raw = request.args.get("sala_id")
+    if not data:
+        return jsonify({"ok": False, "msg": "Informe a data."}), 400
+    try:
+        medico_id = int(medico_raw) if medico_raw else None
+        sala_id = int(sala_raw) if sala_raw else None
+    except ValueError:
+        return jsonify({"ok": False, "msg": "Parâmetros inválidos."}), 400
+
+    ocupados = get_busy_slots(data, medico_id, sala_id)
+    disponiveis = horarios_disponiveis(medico_id or 0, sala_id or 0, data)
+    return jsonify({
+        "data": data,
+        "ocupados": ocupados,
+        "disponiveis": disponiveis,
+    })
+
+
+@user_bp.route("/api/sugerir_horario", methods=["GET"], endpoint="api_sugerir_horario")
+@login_required()
+def api_sugerir_horario():
+    data = (request.args.get("data") or "").strip()
+    hora = (request.args.get("hora") or "").strip()
+    medico_raw = request.args.get("medico_id")
+    sala_raw = request.args.get("sala_id")
+    try:
+        medico_id = int(medico_raw) if medico_raw else None
+        sala_id = int(sala_raw) if sala_raw else None
+    except ValueError:
+        return jsonify({"ok": False, "msg": "Parâmetros inválidos."}), 400
+
+    if not (data and hora):
+        return jsonify({"ok": False, "msg": "Informe data e hora."}), 400
+
+    proxima_data, proxima_hora = sugerir_proximo_horario(data, hora, medico_id, sala_id)
+    if not proxima_data:
+        return jsonify({"ok": False, "msg": "Nenhum horário encontrado."}), 404
+    return jsonify({"data": proxima_data, "hora": proxima_hora})
 
 
 @user_bp.route("/paciente/horarios_disponiveis", endpoint="paciente_horarios_api")
@@ -1490,6 +1601,4 @@ def editar_usuario(usuario_id):
 
     conn.close()
     return render_template("editar_usuario.html", usuario=usuario)
-
-app = Flask(__name__)
 

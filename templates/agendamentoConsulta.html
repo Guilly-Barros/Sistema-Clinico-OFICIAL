@@ -137,6 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const medicoSelect = document.getElementById('medico_id');
   const salaSelect = document.getElementById('sala_id');
   const horaSelect = document.getElementById('hora');
+  const todayISO = new Date().toISOString().split('T')[0];
+  dataInput.min = todayISO;
+
+  function isPastSlot(dateStr, timeStr){
+    const dt = new Date(`${dateStr}T${timeStr}:00`);
+    return dt < new Date();
+  }
 
   async function carregarHorarios() {
     const dia = dataInput.value;
@@ -152,10 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(`/user/recepcionista/horarios_disponiveis?medico_id=${medico}&sala_id=${sala}&dia=${dia}`);
       const list = await res.json();
-      if (!Array.isArray(list) || list.length === 0) {
+      const validSlots = (Array.isArray(list) ? list : []).filter(h => !isPastSlot(dia, h));
+      if (!Array.isArray(list) || validSlots.length === 0) {
         horaSelect.innerHTML = '<option value="">Nenhum horário livre neste dia</option>';
       } else {
-        horaSelect.innerHTML = list.map(h => `<option value="${h}">${h}</option>`).join('');
+        horaSelect.innerHTML = validSlots.map(h => `<option value="${h}">${h}</option>`).join('');
       }
     } catch (e) {
       horaSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
@@ -172,6 +180,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btnSubmit');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const diaEscolhido = dataInput.value;
+    const horaEscolhida = document.getElementById('hora').value;
+    if (isPastSlot(diaEscolhido, horaEscolhida)) {
+      window.spawnToast('Escolha um horário futuro.', 'warning');
+      return;
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvando...';
 
