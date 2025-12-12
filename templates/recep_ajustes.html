@@ -64,21 +64,36 @@
         <div class="modal fade" id="modalNegar{{ r['id'] }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
             <form class="modal-content" method="POST"
-                  action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}">
+                  action="{{ url_for('user.decidir_ajuste', ajuste_id=r['id']) }}"
+                  data-medico="{{ r['medico_id'] }}"
+                  data-sala="{{ r['sala_id'] }}"
+                  data-dia-solicitado="{{ r['novo_dia'] }}"
+                  data-hora-solicitada="{{ r['nova_hora'] }}">
               <input type="hidden" name="acao" value="negar">
               <div class="modal-header" style="background: linear-gradient(135deg, #dc3545, #a71d2a);">
                 <h5 class="modal-title text-white">Negar solicitação</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                <p class="mb-2 small text-muted">Explique o motivo da negativa. O paciente verá esta mensagem.</p>
-                <label class="form-label small text-uppercase text-muted">Motivo da negativa</label>
-                <textarea name="motivo_negativa"
-                          class="form-control border-0 shadow-sm"
-                          rows="3"
-                          required
-                          maxlength="300"
-                          placeholder="Ex.: Agenda cheia no dia solicitado, médico estará em congresso, etc."></textarea>
+                <p class="mb-2 small text-muted">Informe um novo horário sugerido para o paciente.</p>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small text-uppercase text-muted">Data sugerida</label>
+                    <input type="date" name="data_sugerida" class="form-control border-0 shadow-sm" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small text-uppercase text-muted">Horário sugerido</label>
+                    <select name="hora_sugerida" class="form-select border-0 shadow-sm" required>
+                      <option value="">Selecione a data para ver horários</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary w-100 mt-3" data-sugerir>
+                  Sugerir horário automaticamente
+                </button>
+                <div class="alert alert-light border mt-3 mb-2">
+                  O motivo padrão será enviado ao paciente com o novo horário sugerido.
+                </div>
               </div>
               <div class="modal-footer">
                 <button class="btn btn-danger w-100">Enviar negativa</button>
@@ -114,5 +129,88 @@ async function carregarHorarios(btn, targetId){
     target.textContent = 'Erro ao carregar horários.';
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const todayISO = new Date().toISOString().split('T')[0];
+  const slotsBase = (() => {
+    const items = [];
+    for(let minutes=8*60; minutes<=17*60; minutes+=30){
+      const h = String(Math.floor(minutes/60)).padStart(2,'0');
+      const m = String(minutes%60).padStart(2,'0');
+      items.push(`${h}:${m}`);
+    }
+    return items;
+  })();
+
+  function isPastSlot(dateStr, timeStr){
+    if(!dateStr || !timeStr) return false;
+    const dt = new Date(`${dateStr}T${timeStr}:00`);
+    return dt < new Date();
+  }
+
+  async function atualizarDisponibilidade(form){
+    const dataField = form.querySelector('input[name="data_sugerida"]');
+    const horaSelect = form.querySelector('select[name="hora_sugerida"]');
+    if(!dataField.value){
+      horaSelect.innerHTML = '<option value="">Selecione a data para ver horários</option>';
+      return;
+    }
+    horaSelect.innerHTML = '<option>Carregando...</option>';
+    const med = form.dataset.medico;
+    const sala = form.dataset.sala;
+    const params = new URLSearchParams({data:dataField.value});
+    if(med) params.append('medico_id', med);
+    if(sala) params.append('sala_id', sala);
+    try{
+      const res = await fetch(`/user/api/disponibilidade?${params.toString()}`);
+      const out = await res.json();
+      const ocupados = Array.isArray(out.ocupados) ? out.ocupados : [];
+      const options = slotsBase
+        .filter(h => !isPastSlot(dataField.value, h))
+        .map(h => `<option value="${h}" ${ocupados.includes(h)?'disabled':''}>${h}${ocupados.includes(h)?' (ocupado)':''}</option>`);
+      horaSelect.innerHTML = options.length ? options.join('') : '<option value="">Sem horários válidos</option>';
+    }catch(err){
+      horaSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
+    }
+  }
+
+  document.querySelectorAll('[id^="modalNegar"]').forEach(modalEl => {
+    const form = modalEl.querySelector('form');
+    const dataField = form.querySelector('input[name="data_sugerida"]');
+    dataField.min = todayISO;
+    modalEl.addEventListener('shown.bs.modal', () => {
+      form.dataset.medico = form.getAttribute('data-medico');
+      form.dataset.sala = form.getAttribute('data-sala');
+      dataField.value = form.getAttribute('data-dia-solicitado');
+      atualizarDisponibilidade(form);
+    });
+    dataField.addEventListener('change', () => atualizarDisponibilidade(form));
+    const btnSug = form.querySelector('[data-sugerir]');
+    if(btnSug){
+      btnSug.addEventListener('click', async () => {
+        const params = new URLSearchParams({
+          data: form.getAttribute('data-dia-solicitado'),
+          hora: form.getAttribute('data-hora-solicitada')
+        });
+        const med = form.getAttribute('data-medico');
+        const sala = form.getAttribute('data-sala');
+        if(med) params.append('medico_id', med);
+        if(sala) params.append('sala_id', sala);
+        try {
+          const res = await fetch(`/user/api/sugerir_horario?${params.toString()}`);
+          const out = await res.json();
+          if(out.data && out.hora){
+            dataField.value = out.data;
+            await atualizarDisponibilidade(form);
+            const horaSelect = form.querySelector('select[name="hora_sugerida"]');
+            horaSelect.value = out.hora;
+          }
+        } catch(err) {
+          window.spawnToast?.('Erro ao sugerir horário.', 'danger');
+        }
+      });
+    }
+  });
+});
 </script>
 {% endblock %}
