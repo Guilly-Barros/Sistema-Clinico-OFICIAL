@@ -1602,5 +1602,3 @@ def editar_usuario(usuario_id):
     conn.close()
     return render_template("editar_usuario.html", usuario=usuario)
 
-app = Flask(__name__)
-
