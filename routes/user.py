@@ -6,7 +6,7 @@ import sqlite3
 import calendar
 
 from flask import (
-    Blueprint, redirect, render_template, request, session,
+    Flask, Blueprint, redirect, render_template, request, session,
     url_for, flash, jsonify
 )
 from functools import wraps
